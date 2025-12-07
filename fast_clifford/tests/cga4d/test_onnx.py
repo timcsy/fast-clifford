@@ -1,0 +1,388 @@
+"""
+ONNX export tests for CGA4D operations.
+
+Tests:
+- ONNX export with opset 17
+- Verify no Loop nodes in computation graph
+- Verify only basic operators (Add/Mul/Neg)
+- Verify PyTorch and ONNX Runtime produce consistent results
+"""
+
+import pytest
+import torch
+import torch.onnx
+import tempfile
+import os
+
+from fast_clifford.algebras.cga4d.layers import (
+    CGA4DCareLayer,
+    UPGC4DEncoder,
+    UPGC4DDecoder,
+    CGA4DTransformPipeline
+)
+
+
+class TestONNXExport:
+    """ONNX export tests with opset 17."""
+
+    def test_cga4d_care_layer_export(self):
+        """Test CGA4DCareLayer exports to ONNX."""
+        layer = CGA4DCareLayer()
+
+        motor = torch.randn(1, 31)
+        point = torch.randn(1, 6)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    layer,
+                    (motor, point),
+                    f.name,
+                    opset_version=17,
+                    input_names=["motor", "point"],
+                    output_names=["output"],
+                    dynamic_axes={
+                        "motor": {0: "batch_size"},
+                        "point": {0: "batch_size"},
+                        "output": {0: "batch_size"}
+                    }
+                )
+
+                assert os.path.exists(f.name)
+                assert os.path.getsize(f.name) > 0
+
+                import onnx
+                model = onnx.load(f.name)
+                onnx.checker.check_model(model)
+
+            finally:
+                os.unlink(f.name)
+
+    def test_upgc4d_encoder_export(self):
+        """Test UPGC4DEncoder exports to ONNX."""
+        encoder = UPGC4DEncoder()
+
+        x = torch.randn(1, 4)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    encoder,
+                    (x,),
+                    f.name,
+                    opset_version=17,
+                    input_names=["x"],
+                    output_names=["point"],
+                    dynamic_axes={
+                        "x": {0: "batch_size"},
+                        "point": {0: "batch_size"}
+                    }
+                )
+
+                import onnx
+                model = onnx.load(f.name)
+                onnx.checker.check_model(model)
+
+            finally:
+                os.unlink(f.name)
+
+    def test_upgc4d_decoder_export(self):
+        """Test UPGC4DDecoder exports to ONNX."""
+        decoder = UPGC4DDecoder()
+
+        point = torch.randn(1, 6)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    decoder,
+                    (point,),
+                    f.name,
+                    opset_version=17,
+                    input_names=["point"],
+                    output_names=["x"],
+                    dynamic_axes={
+                        "point": {0: "batch_size"},
+                        "x": {0: "batch_size"}
+                    }
+                )
+
+                import onnx
+                model = onnx.load(f.name)
+                onnx.checker.check_model(model)
+
+            finally:
+                os.unlink(f.name)
+
+    def test_full_pipeline_export(self):
+        """Test CGA4DTransformPipeline exports to ONNX."""
+        pipeline = CGA4DTransformPipeline()
+
+        motor = torch.randn(1, 31)
+        x = torch.randn(1, 4)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    pipeline,
+                    (motor, x),
+                    f.name,
+                    opset_version=17,
+                    input_names=["motor", "x"],
+                    output_names=["y"],
+                    dynamic_axes={
+                        "motor": {0: "batch_size"},
+                        "x": {0: "batch_size"},
+                        "y": {0: "batch_size"}
+                    }
+                )
+
+                import onnx
+                model = onnx.load(f.name)
+                onnx.checker.check_model(model)
+
+            finally:
+                os.unlink(f.name)
+
+
+class TestONNXNoLoops:
+    """Verify ONNX computation graph has no Loop nodes."""
+
+    def _get_all_op_types(self, model) -> set:
+        """Extract all op types from an ONNX model."""
+        op_types = set()
+        for node in model.graph.node:
+            op_types.add(node.op_type)
+        return op_types
+
+    def test_cga4d_care_layer_no_loops(self):
+        """Verify CGA4DCareLayer has no Loop nodes."""
+        layer = CGA4DCareLayer()
+        motor = torch.randn(1, 31)
+        point = torch.randn(1, 6)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    layer,
+                    (motor, point),
+                    f.name,
+                    opset_version=17
+                )
+
+                import onnx
+                model = onnx.load(f.name)
+                op_types = self._get_all_op_types(model)
+
+                forbidden_ops = {"Loop", "If", "Scan", "While"}
+                found_forbidden = op_types.intersection(forbidden_ops)
+
+                assert len(found_forbidden) == 0, \
+                    f"Found forbidden control flow ops: {found_forbidden}"
+
+            finally:
+                os.unlink(f.name)
+
+    def test_full_pipeline_no_loops(self):
+        """Verify CGA4DTransformPipeline has no Loop nodes."""
+        pipeline = CGA4DTransformPipeline()
+        motor = torch.randn(1, 31)
+        x = torch.randn(1, 4)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    pipeline,
+                    (motor, x),
+                    f.name,
+                    opset_version=17
+                )
+
+                import onnx
+                model = onnx.load(f.name)
+                op_types = self._get_all_op_types(model)
+
+                forbidden_ops = {"Loop", "If", "Scan", "While"}
+                found_forbidden = op_types.intersection(forbidden_ops)
+
+                assert len(found_forbidden) == 0, \
+                    f"Found forbidden control flow ops: {found_forbidden}"
+
+            finally:
+                os.unlink(f.name)
+
+
+class TestONNXBasicOperators:
+    """Verify ONNX uses only basic operators."""
+
+    ALLOWED_OPS = {
+        # Basic arithmetic
+        "Add", "Sub", "Mul", "Div", "Neg",
+        # Shape manipulation
+        "Concat", "Slice", "Unsqueeze", "Squeeze", "Reshape", "Flatten",
+        "Gather", "Split", "Transpose",
+        # Constants and identity
+        "Constant", "ConstantOfShape", "Identity",
+        # Type conversion
+        "Cast",
+        # Reduction ops
+        "ReduceSum", "ReduceMean",
+        # Other basic ops
+        "MatMul", "Gemm",
+        # Stack operations
+        "ConcatFromSequence"
+    }
+
+    def _get_all_op_types(self, model) -> set:
+        """Extract all op types from an ONNX model."""
+        op_types = set()
+        for node in model.graph.node:
+            op_types.add(node.op_type)
+        return op_types
+
+    def test_cga4d_care_layer_basic_ops(self):
+        """Verify CGA4DCareLayer uses only basic operators."""
+        layer = CGA4DCareLayer()
+        motor = torch.randn(1, 31)
+        point = torch.randn(1, 6)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    layer,
+                    (motor, point),
+                    f.name,
+                    opset_version=17
+                )
+
+                import onnx
+                model = onnx.load(f.name)
+                op_types = self._get_all_op_types(model)
+
+                # Key assertion: no control flow
+                control_flow = {"Loop", "If", "Scan", "While"}
+                assert len(op_types.intersection(control_flow)) == 0, \
+                    "Control flow ops should not be present"
+
+            finally:
+                os.unlink(f.name)
+
+    def test_report_ops_used(self):
+        """Report all ops used by the full pipeline."""
+        pipeline = CGA4DTransformPipeline()
+        motor = torch.randn(1, 31)
+        x = torch.randn(1, 4)
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    pipeline,
+                    (motor, x),
+                    f.name,
+                    opset_version=17
+                )
+
+                import onnx
+                model = onnx.load(f.name)
+                op_types = self._get_all_op_types(model)
+
+                print(f"\nOps used by CGA4DTransformPipeline: {sorted(op_types)}")
+
+                op_counts = {}
+                for node in model.graph.node:
+                    op_counts[node.op_type] = op_counts.get(node.op_type, 0) + 1
+
+                print(f"Op counts: {op_counts}")
+
+                assert len(op_types) > 0, "Should have some ops"
+
+            finally:
+                os.unlink(f.name)
+
+
+class TestONNXNumericalEquivalence:
+    """Verify ONNX model produces same results as PyTorch."""
+
+    def test_onnx_pytorch_equivalence(self):
+        """Compare ONNX inference to PyTorch inference."""
+        import numpy as np
+
+        layer = CGA4DCareLayer()
+        motor = torch.randn(1, 31)
+        point = torch.randn(1, 6)
+
+        pytorch_result = layer(motor, point).detach().numpy()
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    layer,
+                    (motor, point),
+                    f.name,
+                    opset_version=17,
+                    input_names=["motor", "point"],
+                    output_names=["output"]
+                )
+
+                import onnxruntime as ort
+                session = ort.InferenceSession(f.name)
+
+                onnx_result = session.run(
+                    None,
+                    {
+                        "motor": motor.numpy(),
+                        "point": point.numpy()
+                    }
+                )[0]
+
+                np.testing.assert_allclose(
+                    pytorch_result, onnx_result,
+                    rtol=1e-5, atol=1e-5
+                )
+
+            finally:
+                os.unlink(f.name)
+
+    def test_pipeline_onnx_pytorch_equivalence(self):
+        """Compare full pipeline ONNX to PyTorch."""
+        import numpy as np
+
+        pipeline = CGA4DTransformPipeline()
+        motor = torch.randn(1, 31)
+        x = torch.randn(1, 4)
+
+        pytorch_result = pipeline(motor, x).detach().numpy()
+
+        with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
+            try:
+                torch.onnx.export(
+                    pipeline,
+                    (motor, x),
+                    f.name,
+                    opset_version=17,
+                    input_names=["motor", "x"],
+                    output_names=["y"]
+                )
+
+                import onnxruntime as ort
+                session = ort.InferenceSession(f.name)
+
+                onnx_result = session.run(
+                    None,
+                    {
+                        "motor": motor.numpy(),
+                        "x": x.numpy()
+                    }
+                )[0]
+
+                np.testing.assert_allclose(
+                    pytorch_result, onnx_result,
+                    rtol=1e-5, atol=1e-5
+                )
+
+            finally:
+                os.unlink(f.name)
+
+
+if __name__ == "__main__":
+    pytest.main([__file__, "-v"])

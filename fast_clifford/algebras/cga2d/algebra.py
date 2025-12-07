@@ -66,8 +66,8 @@ GRADE_INDICES = (
 # Layout: [e1, e2, e+, e-]
 UPGC_POINT_MASK = GRADE_1_INDICES
 
-# Motor: Grade 0, 2, 4 (1 + 6 + 1 = 8 components)
-# Layout: [scalar, e12, e1+, e1-, e2+, e2-, e+-, e12+-]
+# Motor: Grade 0, 2 (1 + 6 = 7 components), excluding G4 pseudoscalar
+# Layout: [scalar, e12, e1+, e1-, e2+, e2-, e+-]
 MOTOR_MASK = get_motor_indices(EUCLIDEAN_DIM)
 
 # Motor sparse indices (full index -> sparse index mapping)
@@ -89,8 +89,8 @@ REVERSE_SIGNS_BY_GRADE = {
 # Precomputed reverse signs for all 16 blades
 REVERSE_SIGNS = compute_reverse_signs(EUCLIDEAN_DIM)
 
-# Motor reverse signs (8 components)
-# Grade 0 (+1), Grade 2 (-1 x 6), Grade 4 (+1)
+# Motor reverse signs (7 components)
+# Grade 0 (+1), Grade 2 (-1 x 6)
 MOTOR_REVERSE_SIGNS = tuple(REVERSE_SIGNS[idx] for idx in MOTOR_SPARSE_INDICES)
 
 
@@ -230,7 +230,7 @@ def get_blade_info() -> List[Dict]:
 
 def get_motor_sparse_index_map() -> Dict[int, int]:
     """
-    Get mapping from full 16-index to sparse 8-index for motors.
+    Get mapping from full 16-index to sparse 7-index for motors.
 
     Returns:
         Dict mapping full_index -> sparse_index
@@ -240,7 +240,7 @@ def get_motor_sparse_index_map() -> Dict[int, int]:
 
 def get_motor_full_index_map() -> Dict[int, int]:
     """
-    Get mapping from sparse 8-index to full 16-index for motors.
+    Get mapping from sparse 7-index to full 16-index for motors.
 
     Returns:
         Dict mapping sparse_index -> full_index

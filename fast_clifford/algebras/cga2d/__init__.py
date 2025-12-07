@@ -10,7 +10,7 @@ Algebra properties:
 - Signature: (+, +, +, -)
 - Total blades: 16
 - UPGC Point: 4 components
-- Motor: 8 components
+- Motor: 7 components (Grade 0 + 2, excluding G4 pseudoscalar)
 """
 
 from .algebra import (

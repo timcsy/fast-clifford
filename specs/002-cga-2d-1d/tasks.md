@@ -7,6 +7,26 @@
 
 **組織**: 任務按使用者故事分組，以支援獨立實作與測試
 
+---
+
+## 📊 進度摘要
+
+| Phase | 狀態 | 完成 | 總計 | 進度 |
+|-------|------|------|------|------|
+| Phase 1: Setup | ✅ 完成 | 4 | 4 | 100% |
+| Phase 2: Foundational | ✅ 完成 | 7 | 7 | 100% |
+| Phase 3: CGA2D (US1) | ✅ 完成 | 19 | 19 | 100% |
+| Phase 4: CGA1D (US2) | ✅ 完成 | 18 | 18 | 100% |
+| Phase 5: PyTorch (US3) | ✅ 完成 | 14 | 14 | 100% |
+| Phase 6: Verification | ✅ 完成 | 8 | 8 | 100% |
+| Phase 7: Polish | ✅ 完成 | 6 | 6 | 100% |
+| **總計** | **✅ 完成** | **76** | **76** | **100%** |
+
+**最後更新**: 2025-12-07
+**提交**: `2b05f12` - feat: 實作 CGA2D Cl(3,1) 和 CGA1D Cl(2,1) 代數模組
+
+---
+
 ## 格式：`[ID] [P?] [Story?] 描述`
 
 - **[P]**: 可並行執行（不同檔案，無依賴）
@@ -72,15 +92,15 @@ scripts/
 
 **⚠️ 關鍵**: 此階段完成前，不可開始任何使用者故事
 
-- [ ] T005 實作 fast_clifford/codegen/cga_factory.py - 建立通用 CGA 代數工廠函數 create_cga_algebra(euclidean_dim)
-- [ ] T006 實作 fast_clifford/codegen/cga_factory.py - 新增 compute_grade_indices(euclidean_dim) 計算各 grade 的 blade 索引
-- [ ] T007 實作 fast_clifford/codegen/cga_factory.py - 新增 compute_reverse_signs(blade_count, grade_indices) 計算反轉符號
-- [ ] T008 擴展 fast_clifford/codegen/sparse_analysis.py - 新增 get_upgc_point_pattern(euclidean_dim) 工廠函數
-- [ ] T009 擴展 fast_clifford/codegen/sparse_analysis.py - 新增 get_motor_pattern(euclidean_dim, grade_indices) 工廠函數
-- [ ] T010 擴展 fast_clifford/codegen/generate.py - 新增 CGANDAlgebra 通用代數定義類別
-- [ ] T011 擴展 fast_clifford/codegen/generate.py - 新增 CGANDCodeGenerator 通用代碼生成器類別
+- [x] T005 實作 fast_clifford/codegen/cga_factory.py - 建立通用 CGA 代數工廠函數 create_cga_algebra(euclidean_dim)
+- [x] T006 實作 fast_clifford/codegen/cga_factory.py - 新增 compute_grade_indices(euclidean_dim) 計算各 grade 的 blade 索引
+- [x] T007 實作 fast_clifford/codegen/cga_factory.py - 新增 compute_reverse_signs(blade_count, grade_indices) 計算反轉符號
+- [x] T008 擴展 fast_clifford/codegen/sparse_analysis.py - 新增 get_upgc_point_pattern(euclidean_dim) 工廠函數
+- [x] T009 擴展 fast_clifford/codegen/sparse_analysis.py - 新增 get_motor_pattern(euclidean_dim, grade_indices) 工廠函數
+- [x] T010 擴展 fast_clifford/codegen/generate.py - 新增 CGANDAlgebra 通用代數定義類別
+- [x] T011 擴展 fast_clifford/codegen/generate.py - 新增 CGANDCodeGenerator 通用代碼生成器類別
 
-**檢查點**: 通用 CGA 生成器框架完成，可支援任意維度
+**檢查點**: ✅ 通用 CGA 生成器框架完成，可支援任意維度
 
 ---
 
@@ -92,33 +112,33 @@ scripts/
 
 ### 代數定義 (US1)
 
-- [ ] T012 [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 使用 clifford 庫定義 CGA2D 代數
-- [ ] T013 [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 提取幾何積乘法表 (16×16)
-- [ ] T014 [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 定義 Null Basis ($n_o$, $n_\infty$) 並驗證性質
-- [ ] T015 [P] [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 定義 16 個 blade 的索引映射與 grade 對應
-- [ ] T016 [P] [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 定義 Reverse 符號表
+- [x] T012 [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 使用 clifford 庫定義 CGA2D 代數
+- [x] T013 [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 提取幾何積乘法表 (16×16)
+- [x] T014 [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 定義 Null Basis ($n_o$, $n_\infty$) 並驗證性質
+- [x] T015 [P] [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 定義 16 個 blade 的索引映射與 grade 對應
+- [x] T016 [P] [US1] 實作 fast_clifford/algebras/cga2d/algebra.py - 定義 Reverse 符號表
 
 ### 生成器與 functional.py (US1)
 
-- [ ] T017 [US1] 建立 scripts/generate_cga2d.py - 執行 CGA2D 生成器的主腳本
-- [ ] T018 [US1] 執行生成器，輸出 fast_clifford/algebras/cga2d/functional.py - 包含常數定義
-- [ ] T019 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 geometric_product_full() (16×16)
-- [ ] T020 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 reverse_full() (16 分量)
-- [ ] T021 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 upgc_encode() 和 upgc_decode()
-- [ ] T022 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 reverse_motor() (8 分量)
-- [ ] T023 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 sandwich_product_sparse() (~256 乘法)
+- [x] T017 [US1] 建立 scripts/generate_cga2d.py - 執行 CGA2D 生成器的主腳本
+- [x] T018 [US1] 執行生成器，輸出 fast_clifford/algebras/cga2d/functional.py - 包含常數定義
+- [x] T019 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 geometric_product_full() (16×16)
+- [x] T020 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 reverse_full() (16 分量)
+- [x] T021 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 upgc_encode() 和 upgc_decode()
+- [x] T022 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 reverse_motor() (8 分量)
+- [x] T023 [US1] 驗證 fast_clifford/algebras/cga2d/functional.py - 包含 sandwich_product_sparse() (~256 乘法)
 
 ### 測試 (US1)
 
-- [ ] T024 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證幾何積正確性（對比 clifford）
-- [ ] T025 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 Null Basis 性質 ($n_o^2=0$, $n_\infty^2=0$, $n_o \cdot n_\infty = -1$)
-- [ ] T026 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證幾何積結合律（隨機測試）
-- [ ] T027 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 Reverse 符號正確性
-- [ ] T028 [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證稀疏三明治積正確性（旋轉變換）
-- [ ] T029 [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證稀疏三明治積正確性（平移變換）
-- [ ] T030 [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 邊界案例測試：零向量、單位 Motor、未正規化 Motor
+- [x] T024 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證幾何積正確性（對比 clifford）
+- [x] T025 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 Null Basis 性質 ($n_o^2=0$, $n_\infty^2=0$, $n_o \cdot n_\infty = -1$)
+- [x] T026 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證幾何積結合律（隨機測試）
+- [x] T027 [P] [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 Reverse 符號正確性
+- [x] T028 [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證稀疏三明治積正確性（旋轉變換）
+- [x] T029 [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證稀疏三明治積正確性（平移變換）
+- [x] T030 [US1] 實作 fast_clifford/tests/cga2d/test_numerical.py - 邊界案例測試：零向量、單位 Motor、未正規化 Motor
 
-**檢查點**: CGA2D 代數與 functional.py 完成，數值測試通過
+**檢查點**: ✅ CGA2D 代數與 functional.py 完成，數值測試通過
 
 ---
 
@@ -130,32 +150,32 @@ scripts/
 
 ### 代數定義 (US2)
 
-- [ ] T031 [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 使用 clifford 庫定義 CGA1D 代數
-- [ ] T032 [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 提取幾何積乘法表 (8×8)
-- [ ] T033 [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 定義 Null Basis 並驗證性質
-- [ ] T034 [P] [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 定義 8 個 blade 的索引映射與 grade 對應
-- [ ] T035 [P] [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 定義 Reverse 符號表
+- [x] T031 [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 使用 clifford 庫定義 CGA1D 代數
+- [x] T032 [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 提取幾何積乘法表 (8×8)
+- [x] T033 [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 定義 Null Basis 並驗證性質
+- [x] T034 [P] [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 定義 8 個 blade 的索引映射與 grade 對應
+- [x] T035 [P] [US2] 實作 fast_clifford/algebras/cga1d/algebra.py - 定義 Reverse 符號表
 
 ### 生成器與 functional.py (US2)
 
-- [ ] T036 [US2] 建立 scripts/generate_cga1d.py - 執行 CGA1D 生成器的主腳本
-- [ ] T037 [US2] 執行生成器，輸出 fast_clifford/algebras/cga1d/functional.py - 包含常數定義
-- [ ] T038 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 geometric_product_full() (8×8)
-- [ ] T039 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 reverse_full() (8 分量)
-- [ ] T040 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 upgc_encode() 和 upgc_decode()
-- [ ] T041 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 reverse_motor() (4 分量)
-- [ ] T042 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 sandwich_product_sparse() (~72 乘法)
+- [x] T036 [US2] 建立 scripts/generate_cga1d.py - 執行 CGA1D 生成器的主腳本
+- [x] T037 [US2] 執行生成器，輸出 fast_clifford/algebras/cga1d/functional.py - 包含常數定義
+- [x] T038 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 geometric_product_full() (8×8)
+- [x] T039 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 reverse_full() (8 分量)
+- [x] T040 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 upgc_encode() 和 upgc_decode()
+- [x] T041 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 reverse_motor() (4 分量)
+- [x] T042 [US2] 驗證 fast_clifford/algebras/cga1d/functional.py - 包含 sandwich_product_sparse() (~72 乘法)
 
 ### 測試 (US2)
 
-- [ ] T043 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證幾何積正確性（對比 clifford）
-- [ ] T044 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 Null Basis 性質
-- [ ] T045 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證幾何積結合律
-- [ ] T046 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 Reverse 符號正確性
-- [ ] T047 [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證稀疏三明治積正確性（平移變換）
-- [ ] T048 [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 邊界案例測試
+- [x] T043 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證幾何積正確性（對比 clifford）
+- [x] T044 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 Null Basis 性質
+- [x] T045 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證幾何積結合律
+- [x] T046 [P] [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 Reverse 符號正確性
+- [x] T047 [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證稀疏三明治積正確性（平移變換）
+- [x] T048 [US2] 實作 fast_clifford/tests/cga1d/test_numerical.py - 邊界案例測試
 
-**檢查點**: CGA1D 代數與 functional.py 完成，數值測試通過
+**檢查點**: ✅ CGA1D 代數與 functional.py 完成，數值測試通過
 
 ---
 
@@ -167,28 +187,28 @@ scripts/
 
 ### CGA2D 層封裝 (US3)
 
-- [ ] T049 [US3] 實作 fast_clifford/algebras/cga2d/layers.py - 定義 CGA2DCareLayer 類別骨架
-- [ ] T050 [US3] 實作 fast_clifford/algebras/cga2d/layers.py - 實作 forward() 方法，包含 fp16→fp32→fp16 轉換
-- [ ] T051 [US3] 實作 fast_clifford/algebras/cga2d/layers.py - 整合 sandwich_product_sparse 函式
-- [ ] T052 [US3] 更新 fast_clifford/algebras/cga2d/__init__.py - 匯出 CGA2DCareLayer
+- [x] T049 [US3] 實作 fast_clifford/algebras/cga2d/layers.py - 定義 CGA2DCareLayer 類別骨架
+- [x] T050 [US3] 實作 fast_clifford/algebras/cga2d/layers.py - 實作 forward() 方法，包含 fp16→fp32→fp16 轉換
+- [x] T051 [US3] 實作 fast_clifford/algebras/cga2d/layers.py - 整合 sandwich_product_sparse 函式
+- [x] T052 [US3] 更新 fast_clifford/algebras/cga2d/__init__.py - 匯出 CGA2DCareLayer
 
 ### CGA1D 層封裝 (US3)
 
-- [ ] T053 [US3] 實作 fast_clifford/algebras/cga1d/layers.py - 定義 CGA1DCareLayer 類別骨架
-- [ ] T054 [US3] 實作 fast_clifford/algebras/cga1d/layers.py - 實作 forward() 方法
-- [ ] T055 [US3] 實作 fast_clifford/algebras/cga1d/layers.py - 整合 sandwich_product_sparse 函式
-- [ ] T056 [US3] 更新 fast_clifford/algebras/cga1d/__init__.py - 匯出 CGA1DCareLayer
+- [x] T053 [US3] 實作 fast_clifford/algebras/cga1d/layers.py - 定義 CGA1DCareLayer 類別骨架
+- [x] T054 [US3] 實作 fast_clifford/algebras/cga1d/layers.py - 實作 forward() 方法
+- [x] T055 [US3] 實作 fast_clifford/algebras/cga1d/layers.py - 整合 sandwich_product_sparse 函式
+- [x] T056 [US3] 更新 fast_clifford/algebras/cga1d/__init__.py - 匯出 CGA1DCareLayer
 
 ### 測試 (US3)
 
-- [ ] T057 [P] [US3] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 CGA2DCareLayer 數值正確性
-- [ ] T058 [P] [US3] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 CGA2D 精度轉換（fp16→fp32→fp16）
-- [ ] T059 [P] [US3] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 CGA2D 梯度流動
-- [ ] T060 [P] [US3] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 CGA1DCareLayer 數值正確性
-- [ ] T061 [P] [US3] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 CGA1D 精度轉換
-- [ ] T062 [P] [US3] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 CGA1D 梯度流動
+- [x] T057 [P] [US3] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 CGA2DCareLayer 數值正確性
+- [x] T058 [P] [US3] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 CGA2D 精度轉換（fp16→fp32→fp16）
+- [x] T059 [P] [US3] 實作 fast_clifford/tests/cga2d/test_numerical.py - 驗證 CGA2D 梯度流動
+- [x] T060 [P] [US3] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 CGA1DCareLayer 數值正確性
+- [x] T061 [P] [US3] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 CGA1D 精度轉換
+- [x] T062 [P] [US3] 實作 fast_clifford/tests/cga1d/test_numerical.py - 驗證 CGA1D 梯度流動
 
-**檢查點**: CGA2DCareLayer 和 CGA1DCareLayer 可用於 PyTorch 訓練
+**檢查點**: ✅ CGA2DCareLayer 和 CGA1DCareLayer 可用於 PyTorch 訓練
 
 ---
 
@@ -198,19 +218,19 @@ scripts/
 
 ### ONNX 匯出測試
 
-- [ ] T063 [P] 實作 fast_clifford/tests/cga2d/test_onnx.py - CGA2D ONNX 匯出測試（opset 17）
-- [ ] T064 [P] 實作 fast_clifford/tests/cga2d/test_onnx.py - 驗證 CGA2D ONNX 計算圖無 Loop 節點
-- [ ] T065 [P] 實作 fast_clifford/tests/cga2d/test_onnx.py - 驗證 CGA2D ONNX 只有 Add/Mul/Neg 等基本算子
-- [ ] T066 [P] 實作 fast_clifford/tests/cga1d/test_onnx.py - CGA1D ONNX 匯出測試（opset 17）
-- [ ] T067 [P] 實作 fast_clifford/tests/cga1d/test_onnx.py - 驗證 CGA1D ONNX 計算圖無 Loop 節點
-- [ ] T068 [P] 實作 fast_clifford/tests/cga1d/test_onnx.py - 驗證 CGA1D ONNX 只有 Add/Mul/Neg 等基本算子
+- [x] T063 [P] 實作 fast_clifford/tests/cga2d/test_onnx.py - CGA2D ONNX 匯出測試（opset 17）
+- [x] T064 [P] 實作 fast_clifford/tests/cga2d/test_onnx.py - 驗證 CGA2D ONNX 計算圖無 Loop 節點
+- [x] T065 [P] 實作 fast_clifford/tests/cga2d/test_onnx.py - 驗證 CGA2D ONNX 只有 Add/Mul/Neg 等基本算子
+- [x] T066 [P] 實作 fast_clifford/tests/cga1d/test_onnx.py - CGA1D ONNX 匯出測試（opset 17）
+- [x] T067 [P] 實作 fast_clifford/tests/cga1d/test_onnx.py - 驗證 CGA1D ONNX 計算圖無 Loop 節點
+- [x] T068 [P] 實作 fast_clifford/tests/cga1d/test_onnx.py - 驗證 CGA1D ONNX 只有 Add/Mul/Neg 等基本算子
 
 ### 跨平台測試
 
-- [ ] T069 [P] 實作 fast_clifford/tests/cga2d/test_numerical.py - CGA2D 跨平台測試（MPS/CUDA/CPU）
-- [ ] T070 [P] 實作 fast_clifford/tests/cga1d/test_numerical.py - CGA1D 跨平台測試（MPS/CUDA/CPU）
+- [x] T069 [P] 實作 fast_clifford/tests/cga2d/test_numerical.py - CGA2D 跨平台測試（MPS/CUDA/CPU）
+- [x] T070 [P] 實作 fast_clifford/tests/cga1d/test_numerical.py - CGA1D 跨平台測試（MPS/CUDA/CPU）
 
-**檢查點**: 所有憲法約束驗證通過
+**檢查點**: ✅ 所有憲法約束驗證通過
 
 ---
 
@@ -218,12 +238,14 @@ scripts/
 
 **目的**: 收尾與整合
 
-- [ ] T071 [P] 應用 torch.jit.script 於 fast_clifford/algebras/cga2d/functional.py
-- [ ] T072 [P] 應用 torch.jit.script 於 fast_clifford/algebras/cga1d/functional.py
-- [ ] T073 更新 fast_clifford/algebras/__init__.py - 匯出 cga2d, cga1d 模組
-- [ ] T074 更新 fast_clifford/__init__.py - 匯出 cga2d, cga1d
-- [ ] T075 執行 specs/002-cga-2d-1d/quickstart.md 驗證所有範例可運行
-- [ ] T076 [P] 程式碼清理與格式化
+- [x] T071 [P] 應用 torch.jit.script 於 fast_clifford/algebras/cga2d/functional.py
+- [x] T072 [P] 應用 torch.jit.script 於 fast_clifford/algebras/cga1d/functional.py
+- [x] T073 更新 fast_clifford/algebras/__init__.py - 匯出 cga2d, cga1d 模組
+- [x] T074 更新 fast_clifford/__init__.py - 匯出 cga2d, cga1d
+- [x] T075 執行 specs/002-cga-2d-1d/quickstart.md 驗證所有範例可運行（修正 CGA1D 平移馬達公式）
+- [x] T076 [P] 程式碼清理與格式化
+
+**檢查點**: ✅ 所有任務完成
 
 ---
 

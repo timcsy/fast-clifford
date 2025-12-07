@@ -130,17 +130,17 @@ print(f"UPGC 形狀: {upgc_points.shape}")  # (4, 3)
 ### 3. 建立 1D 平移馬達
 
 ```python
-# 1D 平移馬達: T = 1 - (1/2)*t*einf
+# 1D 平移馬達: T = 1 + (1/2)*t*einf*e1
 # 其中 einf = e+ + e-
 translation = 3.0  # 平移 3 單位
 
 # Motor 格式: [scalar, e1+, e1-, e+-]
-# T = 1 - 0.5*t*(e+ + e-) 作用在 e1 上產生 e1+ 和 e1- 分量
+# T = 1 + 0.5*t*einf*e1 展開後產生 e1+ 和 e1- 分量
 translation_motor = torch.tensor([
-    1.0,           # scalar
-    -0.5 * translation,  # e1+ (從 -0.5*t*e1*e+)
-    -0.5 * translation,  # e1- (從 -0.5*t*e1*e-)
-    0.0,           # e+-
+    1.0,                  # scalar
+    -0.5 * translation,   # e1+ (從 0.5*t*(e++e-)*e1 = 0.5*t*e1*e+ + 0.5*t*e1*e- = -0.5*t*e1e+ - 0.5*t*e1e-)
+    -0.5 * translation,   # e1-
+    0.0,                  # e+-
 ])
 
 # 廣播至批次

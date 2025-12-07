@@ -5,6 +5,8 @@ CGA Factory - 通用化 CGA 代數建立工廠
 - CGA1D: Cl(2,1) - 1D 歐幾里得空間
 - CGA2D: Cl(3,1) - 2D 歐幾里得空間
 - CGA3D: Cl(4,1) - 3D 歐幾里得空間
+- CGA4D: Cl(5,1) - 4D 歐幾里得空間
+- CGA5D: Cl(6,1) - 5D 歐幾里得空間
 
 所有 CGA(n) 使用 Cl(n+1,1) 代數，簽名為 (+,...,+,-):
 - n 個正簽名的歐幾里得基底 (e1, e2, ..., en)
@@ -22,7 +24,7 @@ def create_cga_algebra(euclidean_dim: int):
     建立 CGA Cl(n+1,1) 代數。
 
     Args:
-        euclidean_dim: 歐幾里得空間維度 (1, 2, 或 3)
+        euclidean_dim: 歐幾里得空間維度 (1, 2, 3, 4, 或 5)
 
     Returns:
         layout: CGA 代數布局物件
@@ -30,10 +32,10 @@ def create_cga_algebra(euclidean_dim: int):
         stuff: CGA 特殊物件 (eo, einf, up, down)
 
     Raises:
-        ValueError: 若 euclidean_dim 不在 [1, 3] 範圍內
+        ValueError: 若 euclidean_dim 不在 [1, 5] 範圍內
     """
-    if euclidean_dim < 1 or euclidean_dim > 3:
-        raise ValueError(f"euclidean_dim 必須在 [1, 3] 範圍內，收到: {euclidean_dim}")
+    if euclidean_dim < 1 or euclidean_dim > 5:
+        raise ValueError(f"euclidean_dim 必須在 [1, 5] 範圍內，收到: {euclidean_dim}")
 
     # 建立基底歐幾里得代數 Cl(n)
     G_n, _ = Cl(euclidean_dim)
@@ -182,7 +184,17 @@ def get_motor_indices(euclidean_dim: int) -> Tuple[int, ...]:
     """
     取得 Motor 的非零 blade 索引。
 
-    Motor 包含 Grade 0, 2, 和 4（若存在）分量。
+    Motor 包含偶數 grade 分量，但必須排除 pseudoscalar（最高 grade）。
+    當最高 grade 是偶數時，該 grade 是 pseudoscalar，必須排除。
+
+    - CGA1D (n=3): Grade 0, 2 (4 分量) - G3 是奇數，不影響
+    - CGA2D (n=4): Grade 0, 2 (7 分量) - G4 是 pseudoscalar，排除
+    - CGA3D (n=5): Grade 0, 2, 4 (16 分量) - G5 是奇數，不影響
+    - CGA4D (n=6): Grade 0, 2, 4 (31 分量) - G6 是 pseudoscalar，排除
+    - CGA5D (n=7): Grade 0, 2, 4, 6 (64 分量) - G7 是奇數，不影響
+    - CGA6D (n=8): Grade 0, 2, 4, 6 (127 分量) - G8 是 pseudoscalar，排除
+    - CGA7D (n=9): Grade 0, 2, 4, 6, 8 (256 分量) - G9 是奇數，不影響
+    - ...
 
     Args:
         euclidean_dim: 歐幾里得空間維度
@@ -192,13 +204,15 @@ def get_motor_indices(euclidean_dim: int) -> Tuple[int, ...]:
     """
     grade_indices = compute_grade_indices(euclidean_dim)
     total_dim = euclidean_dim + 2
+    max_grade = total_dim  # CGA 代數的最高 grade = pseudoscalar
 
     indices = list(grade_indices[0])  # Grade 0
     indices.extend(grade_indices[2])  # Grade 2
 
-    # Grade 4 只有在 total_dim >= 4 時存在
-    if total_dim >= 4 and 4 in grade_indices:
-        indices.extend(grade_indices[4])
+    # 對於每個偶數 grade，只有當它不是 pseudoscalar 時才加入
+    for grade in range(4, max_grade + 1, 2):
+        if grade in grade_indices and grade != max_grade:
+            indices.extend(grade_indices[grade])
 
     return tuple(sorted(indices))
 
@@ -290,10 +304,20 @@ CGA3D_EUCLIDEAN_DIM = 3
 CGA3D_BLADE_COUNT = 32
 CGA3D_SIGNATURE = (1, 1, 1, 1, -1)  # e1+, e2+, e3+, e++, e--
 
+# CGA4D Cl(5,1) 參數
+CGA4D_EUCLIDEAN_DIM = 4
+CGA4D_BLADE_COUNT = 64
+CGA4D_SIGNATURE = (1, 1, 1, 1, 1, -1)  # e1+, e2+, e3+, e4+, e++, e--
+
+# CGA5D Cl(6,1) 參數
+CGA5D_EUCLIDEAN_DIM = 5
+CGA5D_BLADE_COUNT = 128
+CGA5D_SIGNATURE = (1, 1, 1, 1, 1, 1, -1)  # e1+, e2+, e3+, e4+, e5+, e++, e--
+
 
 if __name__ == "__main__":
     # 驗證各維度 CGA 代數
-    for dim in [1, 2, 3]:
+    for dim in [1, 2, 3, 4, 5]:
         print(f"\n=== CGA{dim}D Cl({dim+1},1) ===")
         print(f"Blade count: {compute_blade_count(dim)}")
 

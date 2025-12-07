@@ -57,10 +57,10 @@ scripts/
 
 **目的**: 建立新代數類型的目錄結構
 
-- [ ] T001 [P] 建立 fast_clifford/algebras/cga2d/__init__.py
-- [ ] T002 [P] 建立 fast_clifford/algebras/cga1d/__init__.py
-- [ ] T003 [P] 建立 fast_clifford/tests/cga2d/__init__.py
-- [ ] T004 [P] 建立 fast_clifford/tests/cga1d/__init__.py
+- [x] T001 [P] 建立 fast_clifford/algebras/cga2d/__init__.py
+- [x] T002 [P] 建立 fast_clifford/algebras/cga1d/__init__.py
+- [x] T003 [P] 建立 fast_clifford/tests/cga2d/__init__.py
+- [x] T004 [P] 建立 fast_clifford/tests/cga1d/__init__.py
 
 **檢查點**: 目錄結構就緒
 

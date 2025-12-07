@@ -2,14 +2,27 @@
 Sparsity analysis for CGA operations.
 
 Defines sparsity patterns for common multivector types:
-- UPGC Point (Grade 1 only, 5 components)
-- Motor (Grade 0, 2, 4, 16 components)
+- UPGC Point (Grade 1 only)
+- Motor (Grade 0, 2, 4)
+
+Supports multiple CGA dimensions:
+- CGA1D Cl(2,1): 8 blades, 3 Point, 4 Motor
+- CGA2D Cl(3,1): 16 blades, 4 Point, 8 Motor
+- CGA3D Cl(4,1): 32 blades, 5 Point, 16 Motor
 
 And analyzes sandwich product output sparsity.
 """
 
 from typing import Dict, List, Set, Tuple
 from .base import SparsityPattern
+from .cga_factory import (
+    compute_blade_count,
+    compute_grade_indices,
+    get_upgc_point_indices,
+    get_motor_indices,
+    get_product_table,
+    compute_reverse_signs,
+)
 
 
 # =============================================================================
@@ -240,3 +253,207 @@ POINT_SPARSE_ORDER = """
 3: e+ (index 4)
 4: e- (index 5)
 """
+
+
+# =============================================================================
+# 通用化稀疏分析工廠函數
+# =============================================================================
+
+def get_upgc_point_pattern(euclidean_dim: int) -> SparsityPattern:
+    """
+    取得指定維度 CGA 的 UPGC Point 稀疏性模式。
+
+    Args:
+        euclidean_dim: 歐幾里得空間維度 (1, 2, 或 3)
+
+    Returns:
+        SparsityPattern 物件
+    """
+    blade_count = compute_blade_count(euclidean_dim)
+    point_indices = get_upgc_point_indices(euclidean_dim)
+
+    return SparsityPattern(
+        name=f"upgc_point_{euclidean_dim}d",
+        nonzero_indices=point_indices,
+        blade_count=blade_count
+    )
+
+
+def get_motor_pattern(euclidean_dim: int) -> SparsityPattern:
+    """
+    取得指定維度 CGA 的 Motor 稀疏性模式。
+
+    Args:
+        euclidean_dim: 歐幾里得空間維度 (1, 2, 或 3)
+
+    Returns:
+        SparsityPattern 物件
+    """
+    blade_count = compute_blade_count(euclidean_dim)
+    motor_indices = get_motor_indices(euclidean_dim)
+
+    return SparsityPattern(
+        name=f"motor_{euclidean_dim}d",
+        nonzero_indices=motor_indices,
+        blade_count=blade_count
+    )
+
+
+def analyze_sandwich_output_sparsity_generic(
+    euclidean_dim: int
+) -> Set[int]:
+    """
+    分析指定維度 CGA 的 sandwich product 輸出稀疏性。
+
+    Args:
+        euclidean_dim: 歐幾里得空間維度
+
+    Returns:
+        輸出可能非零的 blade 索引集合
+    """
+    product_table = get_product_table(euclidean_dim)
+    motor_indices = get_motor_indices(euclidean_dim)
+    point_indices = get_upgc_point_indices(euclidean_dim)
+
+    return analyze_sandwich_output_sparsity(
+        product_table, motor_indices, point_indices
+    )
+
+
+def get_sandwich_product_terms_generic(
+    euclidean_dim: int
+) -> Dict[int, List[Tuple[int, int, int, int]]]:
+    """
+    取得指定維度 CGA 的 sandwich product 所有項。
+
+    Args:
+        euclidean_dim: 歐幾里得空間維度
+
+    Returns:
+        Dict 映射 output_index -> [(motor_sparse_i, point_sparse_j, motor_sparse_l, sign), ...]
+    """
+    product_table = get_product_table(euclidean_dim)
+    motor_indices = get_motor_indices(euclidean_dim)
+    point_indices = get_upgc_point_indices(euclidean_dim)
+    reverse_signs = compute_reverse_signs(euclidean_dim)
+
+    motor_pattern = get_motor_pattern(euclidean_dim)
+    point_pattern = get_upgc_point_pattern(euclidean_dim)
+
+    # 建立結果字典
+    result_terms = {k: [] for k in point_indices}
+
+    # 對每個 motor × point × motor_reversed 組合
+    for m_i in motor_indices:
+        for p_j in point_indices:
+            # 第一個乘積: motor[i] × point[j]
+            if (m_i, p_j) not in product_table:
+                continue
+            intermediate, sign_1 = product_table[(m_i, p_j)]
+
+            # 第二個乘積: intermediate × motor[l]
+            for m_l in motor_indices:
+                if (intermediate, m_l) not in product_table:
+                    continue
+                output_idx, sign_2 = product_table[(intermediate, m_l)]
+
+                # 只保留 Grade 1 輸出
+                if output_idx not in point_indices:
+                    continue
+
+                # 合併符號（不包含 reverse 符號，由生成的代碼處理）
+                total_sign = sign_1 * sign_2
+
+                # 轉換為稀疏索引
+                m_sparse_i = motor_pattern.full_to_sparse(m_i)
+                p_sparse_j = point_pattern.full_to_sparse(p_j)
+                m_sparse_l = motor_pattern.full_to_sparse(m_l)
+
+                result_terms[output_idx].append((
+                    m_sparse_i, p_sparse_j, m_sparse_l, total_sign
+                ))
+
+    return result_terms
+
+
+def count_sandwich_product_ops(euclidean_dim: int) -> int:
+    """
+    計算指定維度 CGA sandwich product 的乘法操作數。
+
+    Args:
+        euclidean_dim: 歐幾里得空間維度
+
+    Returns:
+        總乘法操作數
+    """
+    terms = get_sandwich_product_terms_generic(euclidean_dim)
+    return count_multiplication_ops(terms)
+
+
+# =============================================================================
+# CGA1D 預計算模式
+# =============================================================================
+
+# CGA1D Cl(2,1): 8 blades
+# Grade 分佈: 1, 3, 3, 1
+CGA1D_UPGC_POINT_FULL_INDICES = (1, 2, 3)  # e1, e+, e-
+CGA1D_MOTOR_FULL_INDICES = (0, 4, 5, 6)  # scalar, e1+, e1-, e+-
+
+CGA1D_UPGC_POINT_PATTERN = SparsityPattern(
+    name="upgc_point_1d",
+    nonzero_indices=CGA1D_UPGC_POINT_FULL_INDICES,
+    blade_count=8
+)
+
+CGA1D_MOTOR_PATTERN = SparsityPattern(
+    name="motor_1d",
+    nonzero_indices=CGA1D_MOTOR_FULL_INDICES,
+    blade_count=8
+)
+
+
+# =============================================================================
+# CGA2D 預計算模式
+# =============================================================================
+
+# CGA2D Cl(3,1): 16 blades
+# Grade 分佈: 1, 4, 6, 4, 1
+CGA2D_UPGC_POINT_FULL_INDICES = (1, 2, 3, 4)  # e1, e2, e+, e-
+CGA2D_MOTOR_FULL_INDICES = (0, 5, 6, 7, 8, 9, 10, 15)  # Grade 0, 2, 4
+
+CGA2D_UPGC_POINT_PATTERN = SparsityPattern(
+    name="upgc_point_2d",
+    nonzero_indices=CGA2D_UPGC_POINT_FULL_INDICES,
+    blade_count=16
+)
+
+CGA2D_MOTOR_PATTERN = SparsityPattern(
+    name="motor_2d",
+    nonzero_indices=CGA2D_MOTOR_FULL_INDICES,
+    blade_count=16
+)
+
+
+if __name__ == "__main__":
+    print("=== Sparsity Analysis ===")
+
+    for dim in [1, 2, 3]:
+        print(f"\n--- CGA{dim}D ---")
+
+        point_pattern = get_upgc_point_pattern(dim)
+        motor_pattern = get_motor_pattern(dim)
+
+        print(f"UPGC Point: {point_pattern.sparse_count} components")
+        print(f"  Indices: {point_pattern.nonzero_indices}")
+
+        print(f"Motor: {motor_pattern.sparse_count} components")
+        print(f"  Indices: {motor_pattern.nonzero_indices}")
+
+        # 驗證輸出稀疏性
+        output_indices = analyze_sandwich_output_sparsity_generic(dim)
+        print(f"Sandwich output indices: {output_indices}")
+
+        # 乘法操作數
+        ops = count_sandwich_product_ops(dim)
+        full_ops = motor_pattern.sparse_count * point_pattern.sparse_count * motor_pattern.sparse_count * 2
+        print(f"Multiplication ops: {ops} (vs {full_ops} naive)")

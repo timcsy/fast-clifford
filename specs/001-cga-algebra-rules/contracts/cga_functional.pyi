@@ -95,7 +95,7 @@ def sandwich_product_sparse(
     """
     稀疏三明治積：M × X × M̃
 
-    這是 CGA-CARE 的核心函式，利用以下稀疏性假設：
+    這是 fast-clifford 的核心函式，利用以下稀疏性假設：
     - 輸入 X: 只有 Grade 1 有非零值（5 個分量）
     - Motor M: 只有 Grade 0, 2, 4 有非零值（16 個分量）
     - 輸出: 只有 Grade 1 有非零值（5 個分量）

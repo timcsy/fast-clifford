@@ -46,6 +46,7 @@
 | IV. 硬編碼代數展開 | ✅ 通過 | 禁止 Cayley 表，使用符號展開 |
 | V. 數值精度安全 | ✅ 通過 | CGACareLayer 處理 fp16→fp32→fp16 |
 | VI. 文件語言規範 | ✅ 通過 | 規格文件使用繁體中文 |
+| VII. 增量提交原則 | ✅ 通過 | 每個任務/檢查點後提交 Git |
 
 ## 專案結構
 
@@ -65,29 +66,40 @@ specs/001-cga-algebra-rules/
 ### 原始碼（專案根目錄）
 
 ```text
-cga_care/
+fast_clifford/
 ├── __init__.py
-├── codegen/                    # Phase 1: 程式碼生成器
+├── codegen/                    # 通用程式碼生成器框架
 │   ├── __init__.py
-│   ├── algebra.py              # sympy/clifford 代數定義
-│   ├── sparse_analysis.py      # 稀疏性分析
+│   ├── base.py                 # 基礎代數類別與生成器介面
+│   ├── sparse_analysis.py      # 稀疏性分析工具
 │   └── generate.py             # 生成器主程式
-├── functional/                 # Phase 1 輸出目標
+├── algebras/                   # 各代數類型實作（按類型分資料夾）
 │   ├── __init__.py
-│   └── cga_functional.py       # 生成的硬編碼函式
-├── nn/                         # Phase 2: PyTorch 封裝
-│   ├── __init__.py
-│   └── cga_layer.py            # CGACareLayer (nn.Module)
-└── tests/                      # Phase 4: 驗證
+│   └── cga3d/                  # 3D 共形幾何代數 Cl(4,1) ← 本功能
+│       ├── __init__.py
+│       ├── algebra.py          # CGA 代數定義（使用 clifford）
+│       ├── functional.py       # 生成的硬編碼函式
+│       └── layers.py           # CGACareLayer (nn.Module)
+│   # 未來擴展：
+│   # └── pga3d/                # 3D 射影幾何代數 Cl(3,0,1)
+│   # └── vga3d/                # 3D 向量幾何代數 Cl(3,0)
+│   # └── cga2d/                # 2D 共形幾何代數 Cl(3,1)
+└── tests/                      # 測試
     ├── __init__.py
-    ├── test_numerical.py       # 數值正確性
-    └── test_onnx.py            # ONNX 匯出驗證
+    └── cga3d/                  # CGA3D 測試
+        ├── __init__.py
+        ├── test_numerical.py   # 數值正確性
+        └── test_onnx.py        # ONNX 匯出驗證
 
 scripts/
-└── generate_cga.py             # 執行生成器的腳本
+└── generate_cga3d.py           # 執行 CGA3D 生成器的腳本
 ```
 
-**結構決策**: 採用單一專案結構，分離生成器（codegen/）與生成輸出（functional/）。生成器使用 sympy/clifford，輸出是純 PyTorch。
+**結構決策**:
+- 採用按代數類型分資料夾結構，便於擴展不同 Clifford 代數
+- `codegen/` 放通用生成器框架
+- `algebras/<type>/` 放各代數的具體實作
+- 每個代數類型包含：定義 (algebra.py)、生成輸出 (functional.py)、封裝層 (layers.py)
 
 ## 四階段流水線
 
@@ -100,7 +112,7 @@ scripts/
 - 稀疏性假設（UPGC 點、Motor）
 
 **輸出**:
-- `cga_care/functional/cga_functional.py`
+- `fast_clifford/algebras/cga3d/functional.py`
 - 完全展開、無迴圈的 PyTorch 函式
 
 **關鍵函式**:

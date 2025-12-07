@@ -5,7 +5,7 @@
 ```bash
 # 克隆專案
 git clone <repo_url>
-cd CGA-CARE
+cd fast-clifford
 
 # 使用 uv 安裝依賴
 uv sync
@@ -17,8 +17,8 @@ uv sync
 
 ```python
 import torch
-from cga_care.functional import sandwich_product_sparse
-from cga_care.nn import CGACareLayer
+from fast_clifford.algebras.cga3d import sandwich_product_sparse
+from fast_clifford.algebras.cga3d import CGACareLayer
 
 # 建立 Motor（16 個分量）
 # 索引: [scalar, e12, e13, e1+, e1-, e23, e2+, e2-, e3+, e3-, e+-, ...]
@@ -36,7 +36,7 @@ result = sandwich_product_sparse(motor, point)
 ### 2. 使用 PyTorch 封裝層
 
 ```python
-from cga_care.nn import CGACareLayer
+from fast_clifford.algebras.cga3d import CGACareLayer
 
 # 建立層（自動處理精度轉換）
 layer = CGACareLayer()
@@ -83,7 +83,7 @@ print("驗證通過：無 Loop 節點")
 ## 從 3D 向量建立 UPGC Point
 
 ```python
-from cga_care.functional import upgc_encode, upgc_decode
+from fast_clifford.algebras.cga3d import upgc_encode, upgc_decode
 
 # 3D 向量 → UPGC Point
 x_3d = torch.tensor([[1.0, 2.0, 3.0]])  # shape: (1, 3)
@@ -97,34 +97,36 @@ x_recovered = upgc_decode(point)         # shape: (1, 3)
 
 ```bash
 # 執行程式碼生成器
-uv run python scripts/generate_cga.py
+uv run python scripts/generate_cga3d.py
 
-# 輸出檔案: cga_care/functional/cga_functional.py
+# 輸出檔案: fast_clifford/algebras/cga3d/functional.py
 ```
 
 ## 測試
 
 ```bash
 # 執行所有測試
-uv run pytest cga_care/tests/
+uv run pytest fast_clifford/tests/cga3d/
 
 # 只執行數值正確性測試
-uv run pytest cga_care/tests/test_numerical.py
+uv run pytest fast_clifford/tests/cga3d/test_numerical.py
 
 # 只執行 ONNX 匯出測試
-uv run pytest cga_care/tests/test_onnx.py
+uv run pytest fast_clifford/tests/cga3d/test_onnx.py
 ```
 
 ## 目錄結構
 
 ```
-cga_care/
-├── codegen/           # 程式碼生成器（開發時使用）
-├── functional/        # 生成的純函式
-│   └── cga_functional.py
-├── nn/                # PyTorch 封裝層
-│   └── cga_layer.py
-└── tests/             # 測試
+fast_clifford/
+├── codegen/                # 通用程式碼生成器框架
+├── algebras/               # 各代數類型實作
+│   └── cga3d/              # 3D 共形幾何代數 Cl(4,1)
+│       ├── algebra.py      # 代數定義
+│       ├── functional.py   # 生成的硬編碼函式
+│       └── layers.py       # CGACareLayer (nn.Module)
+└── tests/
+    └── cga3d/              # CGA3D 測試
 ```
 
 ## 效能注意事項

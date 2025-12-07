@@ -21,7 +21,7 @@
 待辦事項: 無
 -->
 
-# CGA-CARE 專案憲法
+# fast-clifford 專案憲法
 
 ## 核心原則
 

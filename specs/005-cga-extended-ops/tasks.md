@@ -351,6 +351,8 @@ fast_clifford/
 | `a * s` | `__mul__` | 標量右乘 |
 | `s * a` | `__rmul__` | 標量左乘 |
 | `a / s` | `__truediv__` | 標量除法 |
+| `a / b` | `__truediv__` | 多向量除法 (`a * b.inverse()`) |
+| `a.inverse()` | `inverse()` | 多向量逆元 (`~a / (a * ~a)`) |
 
 ### Tests for User Story 10
 
@@ -365,6 +367,10 @@ fast_clifford/
 - [ ] T127 [P] [US10] 新增標量乘除法測試：`a * s`, `s * a`, `a / s`
 - [ ] T128 [P] [US10] 新增批次維度測試
 - [ ] T129 [P] [US10] 新增 autograd 梯度傳播測試
+- [ ] T129a [P] [US10] 新增多向量除法測試：`a / b == a * b.inverse()`
+- [ ] T129b [P] [US10] 新增逆元測試：`a * a.inverse() ≈ identity`
+- [ ] T129c [P] [US10] 新增不可逆多向量測試：`null_vector.inverse()` 應拋出例外或返回 NaN
+- [ ] T129d [P] [US10] 新增單位元逆元測試：`scalar(1).inverse() == scalar(1)`
 
 ### Implementation for User Story 10
 
@@ -375,10 +381,11 @@ fast_clifford/
 - [ ] T134 [US10] 實作 `Multivector.__matmul__` (左縮併)
 - [ ] T135 [US10] 實作 `Multivector.__add__`, `__sub__`, `__neg__` (加減取負)
 - [ ] T136 [US10] 實作 `Multivector.__invert__` (反向)
-- [ ] T137 [US10] 實作 `Multivector.__truediv__` (標量除法)
+- [ ] T137 [US10] 實作 `Multivector.__truediv__` (標量除法和多向量除法)
+- [ ] T137a [US10] 實作 `Multivector.inverse()` 方法：`~a / (a * ~a)`
 - [ ] T138 [US10] 在 CGAAlgebraBase 新增 `multivector(tensor)` 工廠方法
 - [ ] T139 [US10] 更新 fast_clifford/__init__.py 匯出 `Multivector` 類別
-- [ ] T140 [US10] 執行 US10 測試驗證 (T119-T129)
+- [ ] T140 [US10] 執行 US10 測試驗證 (T119-T129d)
 
 **Checkpoint**: Operator Overloading 功能完成
 

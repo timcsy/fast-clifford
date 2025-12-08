@@ -169,6 +169,8 @@
 6. **Given** 多向量 a，**When** 使用 `~a`，**Then** 返回反向（reverse）結果
 7. **Given** 多向量 a，**When** 使用 `-a`，**Then** 返回取負結果
 8. **Given** 多向量 a 和 b，**When** 使用 `a @ b`，**Then** 返回左縮併（left contraction）結果
+9. **Given** 可逆多向量 a 和 b，**When** 使用 `a / b`，**Then** 返回 `a * b^(-1)` 結果
+10. **Given** 可逆多向量 a，**When** 使用 `a.inverse()`，**Then** 返回逆元 `a^(-1)`
 
 ---
 
@@ -201,6 +203,8 @@
 - **零向量正規化**: normalize(0) 應返回零向量而非 NaN
 - **無效 Grade**: grade_select 對超出範圍的 Grade 應返回零向量
 - **自楔積**: outer_product(v, v) 對任意 v 應返回 0
+- **不可逆多向量**: inverse() 對 null vector 或零向量應拋出錯誤或返回 NaN
+- **單位元逆元**: 標量 1 的逆元應為 1
 
 ## Requirements *(mandatory)*
 
@@ -267,34 +271,37 @@
 - **FR-033**: `Multivector` MUST 實作 `__neg__` 運算子，對應取負 `-a`
 - **FR-034**: `Multivector` MUST 實作 `__invert__` 運算子，對應反向 `~a`
 - **FR-035**: `Multivector` MUST 實作 `__rmul__` 運算子，支援標量左乘 `s * a`
-- **FR-036**: `Multivector` MUST 實作 `__truediv__` 運算子，支援標量除法 `a / s`
-- **FR-037**: 所有運算子 MUST 支援 PyTorch autograd（可微分）
-- **FR-038**: 所有運算子 MUST 支援任意 batch 維度
+- **FR-036**: `Multivector` MUST 實作 `__truediv__` 運算子，支援標量除法 `a / s` 和多向量除法 `a / b`
+- **FR-037**: `Multivector` MUST 實作 `inverse()` 方法，計算多向量逆元 `a^(-1) = ~a / (a * ~a)`
+- **FR-038**: 多向量除法 `a / b` MUST 等價於 `a * b.inverse()`
+- **FR-039**: 對於不可逆多向量（`a * ~a == 0`），`inverse()` SHOULD 拋出 `ValueError` 或返回 NaN
+- **FR-040**: 所有運算子 MUST 支援 PyTorch autograd（可微分）
+- **FR-041**: 所有運算子 MUST 支援任意 batch 維度
 
 #### 統一介面
 
-- **FR-039**: 所有新函式 MUST 加入 CGAAlgebraBase 抽象類別
-- **FR-040**: HardcodedCGAWrapper MUST 對 n=0-5 委派至硬編碼實作
-- **FR-041**: RuntimeCGAAlgebra MUST 對 n≥6 提供一般化實作
+- **FR-042**: 所有新函式 MUST 加入 CGAAlgebraBase 抽象類別
+- **FR-043**: HardcodedCGAWrapper MUST 對 n=0-5 委派至硬編碼實作
+- **FR-044**: RuntimeCGAAlgebra MUST 對 n≥6 提供一般化實作
 
 #### ONNX 相容性
 
-- **FR-042**: 所有硬編碼實作 MUST 可匯出為無 Loop/If 節點的 ONNX 模型
-- **FR-043**: 運行時實作 SHOULD 盡可能支援 ONNX 匯出
+- **FR-045**: 所有硬編碼實作 MUST 可匯出為無 Loop/If 節點的 ONNX 模型
+- **FR-046**: 運行時實作 SHOULD 盡可能支援 ONNX 匯出
 
 #### PyTorch 整合
 
-- **FR-044**: 所有操作 MUST 支援 PyTorch autograd（可微分）
-- **FR-045**: 所有操作 MUST 支援任意 batch 維度
+- **FR-047**: 所有操作 MUST 支援 PyTorch autograd（可微分）
+- **FR-048**: 所有操作 MUST 支援任意 batch 維度
 
 #### Layer 統一命名
 
-- **FR-046**: 系統 MUST 提供統一的 `CGATransformLayer` 類別，取代各維度的 `CGA{n}DCareLayer`
-- **FR-047**: 系統 MUST 提供統一的 `CGAEncoder` 和 `CGADecoder` 類別，取代 `UPGC{n}DEncoder/Decoder`
-- **FR-048**: 系統 MUST 提供統一的 `CGAPipeline` 類別，取代 `CGA{n}DTransformPipeline`
-- **FR-049**: CGAAlgebraBase MUST 提供 `get_transform_layer()` 方法，取代 `get_care_layer()`
-- **FR-050**: 統一命名 MUST 適用於所有維度（包含運行時 n≥6）
-- **FR-051**: 舊的維度特定 Layer 類別 MUST 移除（不向後相容）
+- **FR-049**: 系統 MUST 提供統一的 `CGATransformLayer` 類別，取代各維度的 `CGA{n}DCareLayer`
+- **FR-050**: 系統 MUST 提供統一的 `CGAEncoder` 和 `CGADecoder` 類別，取代 `UPGC{n}DEncoder/Decoder`
+- **FR-051**: 系統 MUST 提供統一的 `CGAPipeline` 類別，取代 `CGA{n}DTransformPipeline`
+- **FR-052**: CGAAlgebraBase MUST 提供 `get_transform_layer()` 方法，取代 `get_care_layer()`
+- **FR-053**: 統一命名 MUST 適用於所有維度（包含運行時 n≥6）
+- **FR-054**: 舊的維度特定 Layer 類別 MUST 移除（不向後相容）
 
 ### Key Entities
 
@@ -324,7 +331,9 @@
 - **SC-011**: 運算子重載 `a * b` 與 `geometric_product(a, b)` 數值等價
 - **SC-012**: 運算子重載 `a ^ b` 與 `outer_product(a, b)` 數值等價
 - **SC-013**: 運算子重載 `a | b` 與 `inner_product(a, b)` 數值等價
-- **SC-014**: 運算子使用符合 Python 慣例（`*` 乘法、`^` 楔積、`|` 內積、`@` 縮併）
+- **SC-014**: 運算子使用符合 Python 慣例（`*` 乘法、`^` 楔積、`|` 內積、`@` 縮併、`/` 除法）
+- **SC-015**: `a * a.inverse()` 對可逆多向量返回近似標量 1
+- **SC-016**: `a / b` 等價於 `a * b.inverse()`
 
 ## Assumptions
 

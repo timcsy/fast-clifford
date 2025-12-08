@@ -151,7 +151,28 @@
 
 ---
 
-### User Story 10 - Unified Layer Naming (Priority: P2)
+### User Story 10 - Operator Overloading (Priority: P2)
+
+開發者需要使用直觀的 Python 運算子來操作多向量，使代碼更接近數學公式，提升可讀性和開發效率。
+
+**Why this priority**: 運算子重載是 Python 風格的核心特色，讓幾何代數運算更直觀。相較於函式呼叫（如 `geometric_product(a, b)`），運算子（如 `a * b`）更接近數學表達式，降低認知負擔。
+
+**Independent Test**: 可透過 `a * b` 驗證幾何積、`a ^ b` 驗證楔積、`a | b` 驗證內積。
+
+**Acceptance Scenarios**:
+
+1. **Given** 兩個多向量 a 和 b，**When** 使用 `a * b`，**Then** 返回幾何積結果
+2. **Given** 兩個多向量 a 和 b，**When** 使用 `a ^ b`，**Then** 返回楔積（外積）結果
+3. **Given** 兩個多向量 a 和 b，**When** 使用 `a | b`，**Then** 返回內積結果
+4. **Given** 兩個多向量 a 和 b，**When** 使用 `a + b` 和 `a - b`，**Then** 返回加減結果
+5. **Given** 多向量 a 和標量 s，**When** 使用 `a * s` 或 `s * a`，**Then** 返回標量乘積
+6. **Given** 多向量 a，**When** 使用 `~a`，**Then** 返回反向（reverse）結果
+7. **Given** 多向量 a，**When** 使用 `-a`，**Then** 返回取負結果
+8. **Given** 多向量 a 和 b，**When** 使用 `a @ b`，**Then** 返回左縮併（left contraction）結果
+
+---
+
+### User Story 11 - Unified Layer Naming (Priority: P2)
 
 開發者需要一致的 Layer 命名，不論維度都使用相同的類別名稱。移除 CARE 論文特定的命名（如 `CGA3DCareLayer`），改為通用的統一名稱。
 
@@ -235,36 +256,51 @@
 - **FR-025**: 對於零向量輸入，MUST 返回零向量（不會產生 NaN）
 - **FR-026**: 正規化 MUST 使用幾何內積計算範數
 
+#### Operator Overloading
+
+- **FR-027**: 系統 MUST 提供 `Multivector` 包裝類別，封裝張量與代數實例
+- **FR-028**: `Multivector` MUST 實作 `__mul__` 運算子，對應幾何積 `a * b`
+- **FR-029**: `Multivector` MUST 實作 `__xor__` 運算子，對應楔積 `a ^ b`
+- **FR-030**: `Multivector` MUST 實作 `__or__` 運算子，對應內積 `a | b`
+- **FR-031**: `Multivector` MUST 實作 `__matmul__` 運算子，對應左縮併 `a @ b`
+- **FR-032**: `Multivector` MUST 實作 `__add__` 和 `__sub__` 運算子，對應加減法
+- **FR-033**: `Multivector` MUST 實作 `__neg__` 運算子，對應取負 `-a`
+- **FR-034**: `Multivector` MUST 實作 `__invert__` 運算子，對應反向 `~a`
+- **FR-035**: `Multivector` MUST 實作 `__rmul__` 運算子，支援標量左乘 `s * a`
+- **FR-036**: `Multivector` MUST 實作 `__truediv__` 運算子，支援標量除法 `a / s`
+- **FR-037**: 所有運算子 MUST 支援 PyTorch autograd（可微分）
+- **FR-038**: 所有運算子 MUST 支援任意 batch 維度
+
 #### 統一介面
 
-- **FR-027**: 所有新函式 MUST 加入 CGAAlgebraBase 抽象類別
-- **FR-028**: HardcodedCGAWrapper MUST 對 n=0-5 委派至硬編碼實作
-- **FR-029**: RuntimeCGAAlgebra MUST 對 n≥6 提供一般化實作
+- **FR-039**: 所有新函式 MUST 加入 CGAAlgebraBase 抽象類別
+- **FR-040**: HardcodedCGAWrapper MUST 對 n=0-5 委派至硬編碼實作
+- **FR-041**: RuntimeCGAAlgebra MUST 對 n≥6 提供一般化實作
 
 #### ONNX 相容性
 
-- **FR-030**: 所有硬編碼實作 MUST 可匯出為無 Loop/If 節點的 ONNX 模型
-- **FR-031**: 運行時實作 SHOULD 盡可能支援 ONNX 匯出
+- **FR-042**: 所有硬編碼實作 MUST 可匯出為無 Loop/If 節點的 ONNX 模型
+- **FR-043**: 運行時實作 SHOULD 盡可能支援 ONNX 匯出
 
 #### PyTorch 整合
 
-- **FR-032**: 所有操作 MUST 支援 PyTorch autograd（可微分）
-- **FR-033**: 所有操作 MUST 支援任意 batch 維度
+- **FR-044**: 所有操作 MUST 支援 PyTorch autograd（可微分）
+- **FR-045**: 所有操作 MUST 支援任意 batch 維度
 
 #### Layer 統一命名
 
-- **FR-034**: 系統 MUST 提供統一的 `CGATransformLayer` 類別，取代各維度的 `CGA{n}DCareLayer`
-- **FR-035**: 系統 MUST 提供統一的 `CGAEncoder` 和 `CGADecoder` 類別，取代 `UPGC{n}DEncoder/Decoder`
-- **FR-036**: 系統 MUST 提供統一的 `CGAPipeline` 類別，取代 `CGA{n}DTransformPipeline`
-- **FR-037**: CGAAlgebraBase MUST 提供 `get_transform_layer()` 方法，取代 `get_care_layer()`
-- **FR-038**: 統一命名 MUST 適用於所有維度（包含運行時 n≥6）
-- **FR-039**: 舊的維度特定 Layer 類別 MUST 移除（不向後相容）
+- **FR-046**: 系統 MUST 提供統一的 `CGATransformLayer` 類別，取代各維度的 `CGA{n}DCareLayer`
+- **FR-047**: 系統 MUST 提供統一的 `CGAEncoder` 和 `CGADecoder` 類別，取代 `UPGC{n}DEncoder/Decoder`
+- **FR-048**: 系統 MUST 提供統一的 `CGAPipeline` 類別，取代 `CGA{n}DTransformPipeline`
+- **FR-049**: CGAAlgebraBase MUST 提供 `get_transform_layer()` 方法，取代 `get_care_layer()`
+- **FR-050**: 統一命名 MUST 適用於所有維度（包含運行時 n≥6）
+- **FR-051**: 舊的維度特定 Layer 類別 MUST 移除（不向後相容）
 
 ### Key Entities
 
 - **Motor**: 偶數 Grade 多向量 (Grade 0 + Grade 2 + Grade 4 + ...)，用於表示剛體變換
 - **Bivector**: Grade 2 多向量，用於表示旋轉軸/平面
-- **Multivector**: 完整 Clifford 代數元素，包含所有 Grade 分量
+- **Multivector**: 包裝類別，封裝張量與代數實例，提供運算子重載
 - **Metric Signature**: CGA 度規 (+,+,...,+,-)，定義內積的符號規則
 - **CGATransformLayer**: 統一的 PyTorch Layer，執行 Motor sandwich product 變換
 - **CGAEncoder**: 統一的 UPGC 編碼器，將歐氏座標轉換為 CGA 點表示
@@ -285,6 +321,10 @@
 - **SC-008**: 統一 Layer 命名後，所有維度使用相同類別名稱（CGATransformLayer 等）
 - **SC-009**: 舊的維度特定 Layer 類別完全移除
 - **SC-010**: outer_product(v, v) 對任意 v 返回 0
+- **SC-011**: 運算子重載 `a * b` 與 `geometric_product(a, b)` 數值等價
+- **SC-012**: 運算子重載 `a ^ b` 與 `outer_product(a, b)` 數值等價
+- **SC-013**: 運算子重載 `a | b` 與 `inner_product(a, b)` 數值等價
+- **SC-014**: 運算子使用符合 Python 慣例（`*` 乘法、`^` 楔積、`|` 內積、`@` 縮併）
 
 ## Assumptions
 

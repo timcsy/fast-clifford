@@ -20,8 +20,11 @@
 8. **Dual** (`dual`): 計算對偶
 9. **Normalize** (`normalize`): 正規化多向量
 
+### 使用者體驗
+10. **Operator Overloading**: Python 運算子重載（`*` `^` `|` `@` `~` 等）
+
 ### 重構
-10. **Unified Layer Naming**: 統一 PyTorch Layer 命名，移除 CARE 特定名稱
+11. **Unified Layer Naming**: 統一 PyTorch Layer 命名，移除 CARE 特定名稱
 
 **技術策略**：n=0-5 使用 codegen 自動生成硬編碼實作（無迴圈，ONNX 相容），n≥6 使用運行時一般化算法。Layer 命名跨所有維度統一。
 
@@ -70,12 +73,13 @@ specs/005-cga-extended-ops/
 
 ```text
 fast_clifford/
-├── __init__.py                    # 匯出新操作與統一 Layer
+├── __init__.py                    # 匯出新操作、統一 Layer、Multivector 類別
 ├── cga/
 │   ├── base.py                    # 新增所有新操作的抽象方法
 │   ├── registry.py                # HardcodedCGAWrapper 實作
 │   ├── runtime.py                 # RuntimeCGAAlgebra 實作
-│   └── layers.py                  # 新增：統一 Layer 類別定義 (CGATransformLayer, CGAEncoder, etc.)
+│   ├── layers.py                  # 新增：統一 Layer 類別定義 (CGATransformLayer, CGAEncoder, etc.)
+│   └── multivector.py             # 新增：Multivector 包裝類別，運算子重載
 ├── codegen/
 │   ├── generate.py                # 新增所有操作的程式碼生成方法
 │   └── sparse_analysis.py         # 新增稀疏性分析函式
@@ -97,6 +101,7 @@ fast_clifford/
     ├── test_grade_select.py       # Grade Selection 測試
     ├── test_dual.py               # Dual 測試
     ├── test_normalize.py          # Normalize 測試
+    ├── test_operators.py          # Operator Overloading 測試
     └── test_unified_layers.py     # 統一 Layer 命名測試
 ```
 

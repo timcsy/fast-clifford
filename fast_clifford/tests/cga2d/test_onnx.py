@@ -26,7 +26,7 @@ class TestONNXExport:
         """CGA2DCareLayer can be exported to ONNX."""
         layer = cga2d.CGA2DCareLayer()
 
-        motor = torch.randn(1, 8)
+        motor = torch.randn(1, 7)
         point = torch.randn(1, 4)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -101,7 +101,7 @@ class TestONNXExport:
         """CGA2DTransformPipeline can be exported to ONNX."""
         pipeline = cga2d.CGA2DTransformPipeline()
 
-        motor = torch.randn(1, 8)
+        motor = torch.randn(1, 7)
         x = torch.randn(1, 2)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -138,7 +138,7 @@ class TestONNXNoLoops:
 
         layer = cga2d.CGA2DCareLayer()
 
-        motor = torch.randn(1, 8)
+        motor = torch.randn(1, 7)
         point = torch.randn(1, 4)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -173,7 +173,7 @@ class TestONNXNumericalEquivalence:
 
         layer = cga2d.CGA2DCareLayer()
 
-        motor = torch.randn(4, 8)
+        motor = torch.randn(4, 7)
         point = torch.randn(4, 4)
 
         # PyTorch output

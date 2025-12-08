@@ -19,7 +19,7 @@ class CGA2DCareLayer(nn.Module):
     CGA2D sandwich product layer for point transformation.
 
     Computes M × X × M̃ where:
-    - M is a motor (8 components: Grade 0, 2, 4)
+    - M is a motor (7 components: Grade 0, 2)
     - X is a UPGC point (4 components: Grade 1)
     - Output is a transformed UPGC point (4 components)
 
@@ -29,7 +29,7 @@ class CGA2DCareLayer(nn.Module):
 
     Example:
         >>> layer = CGA2DCareLayer()
-        >>> motor = torch.randn(batch_size, 8)
+        >>> motor = torch.randn(batch_size, 7)
         >>> point = torch.randn(batch_size, 4)
         >>> output = layer(motor, point)  # shape: (batch_size, 4)
     """
@@ -43,8 +43,8 @@ class CGA2DCareLayer(nn.Module):
         Apply motor transformation to point via sandwich product.
 
         Args:
-            motor: Motor tensor, shape (..., 8)
-                   Layout: [scalar, e12, e1+, e1-, e2+, e2-, e+-, e12+-]
+            motor: Motor tensor, shape (..., 7)
+                   Layout: [scalar, e12, e1+, e1-, e2+, e2-, e+-]
             point: UPGC point tensor, shape (..., 4)
                    Layout: [e1, e2, e+, e-]
 
@@ -135,7 +135,7 @@ class CGA2DTransformPipeline(nn.Module):
 
     Example:
         >>> pipeline = CGA2DTransformPipeline()
-        >>> motor = torch.randn(batch_size, 8)
+        >>> motor = torch.randn(batch_size, 7)
         >>> x_2d = torch.randn(batch_size, 2)
         >>> y_2d = pipeline(motor, x_2d)  # shape: (batch_size, 2)
     """
@@ -152,7 +152,7 @@ class CGA2DTransformPipeline(nn.Module):
         Apply motor transformation to 2D point.
 
         Args:
-            motor: Motor tensor, shape (..., 8)
+            motor: Motor tensor, shape (..., 7)
             x: 2D point, shape (..., 2)
 
         Returns:

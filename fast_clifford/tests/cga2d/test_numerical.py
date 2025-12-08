@@ -276,7 +276,7 @@ class TestSandwichProduct:
 
     def test_identity_motor(self):
         """Identity motor leaves point unchanged."""
-        motor = torch.zeros(8)
+        motor = torch.zeros(7)
         motor[0] = 1.0  # scalar = 1
 
         x = torch.randn(2)
@@ -310,7 +310,7 @@ class TestSandwichProduct:
         )
 
         # Convert motor to sparse representation
-        motor = torch.zeros(8, dtype=torch.float32)
+        motor = torch.zeros(7, dtype=torch.float32)
         motor[0] = float(R.value[0])   # scalar
         motor[1] = float(R.value[5])   # e12 at index 5 in full, index 1 in sparse
 
@@ -328,7 +328,7 @@ class TestSandwichProduct:
         """Batch sandwich product works correctly."""
         batch_size = 8
 
-        motor = torch.zeros(batch_size, 8)
+        motor = torch.zeros(batch_size, 7)
         motor[:, 0] = 1.0  # Identity motors
 
         points = torch.randn(batch_size, 4)
@@ -374,31 +374,22 @@ class TestMotorReverse:
 
     def test_identity_motor_reverse(self):
         """Identity motor reverse is identity."""
-        motor = torch.zeros(8)
+        motor = torch.zeros(7)
         motor[0] = 1.0
 
         result = cga2d.reverse_motor(motor)
 
         assert result[0].item() == pytest.approx(1.0)
-        assert torch.allclose(result[1:], torch.zeros(7))
+        assert torch.allclose(result[1:], torch.zeros(6))
 
     def test_grade2_negated(self):
         """Grade 2 components are negated."""
-        motor = torch.zeros(8)
+        motor = torch.zeros(7)
         motor[1] = 1.0  # e12 (Grade 2)
 
         result = cga2d.reverse_motor(motor)
 
         assert result[1].item() == pytest.approx(-1.0)
-
-    def test_grade4_unchanged(self):
-        """Grade 4 component is unchanged."""
-        motor = torch.zeros(8)
-        motor[7] = 1.0  # e12+- (Grade 4)
-
-        result = cga2d.reverse_motor(motor)
-
-        assert result[7].item() == pytest.approx(1.0)
 
 
 if __name__ == "__main__":

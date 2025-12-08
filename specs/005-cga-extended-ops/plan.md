@@ -5,11 +5,23 @@
 
 ## Summary
 
-新增三個 CGA 核心操作至 fast-clifford 庫：
+新增九個 CGA 核心操作至 fast-clifford 庫：
+
+### 核心操作 (P1-P2)
 1. **Motor Composition** (`motor_compose`): 組合兩個馬達的幾何積
 2. **Geometric Inner Product** (`inner_product`): 計算多向量的度規內積（Grade 0 分量）
 3. **Exponential Map** (`exp_bivector`): 從 Bivector 生成馬達
-4. **Unified Layer Naming**: 統一 PyTorch Layer 命名，移除 CARE 特定名稱
+
+### 代數操作 (P3)
+4. **Outer Product** (`outer_product`): 計算楔積（外積）
+5. **Left Contraction** (`left_contraction`): 計算左縮併
+6. **Right Contraction** (`right_contraction`): 計算右縮併
+7. **Grade Selection** (`grade_select`): 提取特定 Grade 分量
+8. **Dual** (`dual`): 計算對偶
+9. **Normalize** (`normalize`): 正規化多向量
+
+### 重構
+10. **Unified Layer Naming**: 統一 PyTorch Layer 命名，移除 CARE 特定名稱
 
 **技術策略**：n=0-5 使用 codegen 自動生成硬編碼實作（無迴圈，ONNX 相容），n≥6 使用運行時一般化算法。Layer 命名跨所有維度統一。
 
@@ -60,16 +72,16 @@ specs/005-cga-extended-ops/
 fast_clifford/
 ├── __init__.py                    # 匯出新操作與統一 Layer
 ├── cga/
-│   ├── base.py                    # 新增 motor_compose, inner_product, exp_bivector, get_transform_layer 抽象方法
+│   ├── base.py                    # 新增所有新操作的抽象方法
 │   ├── registry.py                # HardcodedCGAWrapper 實作
 │   ├── runtime.py                 # RuntimeCGAAlgebra 實作
 │   └── layers.py                  # 新增：統一 Layer 類別定義 (CGATransformLayer, CGAEncoder, etc.)
 ├── codegen/
-│   ├── generate.py                # 新增 _generate_motor_compose_sparse, etc.
+│   ├── generate.py                # 新增所有操作的程式碼生成方法
 │   └── sparse_analysis.py         # 新增稀疏性分析函式
 ├── algebras/
 │   ├── cga0d/
-│   │   ├── functional.py          # 重新生成，加入新操作
+│   │   ├── functional.py          # 重新生成，加入所有新操作
 │   │   └── layers.py              # 移除舊類別，改為從 cga/layers.py 匯入
 │   ├── cga1d/layers.py
 │   ├── cga2d/layers.py
@@ -80,6 +92,11 @@ fast_clifford/
     ├── test_motor_compose.py      # Motor Composition 測試
     ├── test_inner_product.py      # Inner Product 測試
     ├── test_exp_bivector.py       # Exponential Map 測試
+    ├── test_outer_product.py      # Outer Product 測試
+    ├── test_contractions.py       # Left/Right Contraction 測試
+    ├── test_grade_select.py       # Grade Selection 測試
+    ├── test_dual.py               # Dual 測試
+    ├── test_normalize.py          # Normalize 測試
     └── test_unified_layers.py     # 統一 Layer 命名測試
 ```
 

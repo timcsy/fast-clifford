@@ -2,11 +2,13 @@
 CGA Factory - 通用化 CGA 代數建立工廠
 
 支援任意歐幾里得維度的 CGA 代數:
-- CGA1D: Cl(2,1) - 1D 歐幾里得空間
-- CGA2D: Cl(3,1) - 2D 歐幾里得空間
-- CGA3D: Cl(4,1) - 3D 歐幾里得空間
-- CGA4D: Cl(5,1) - 4D 歐幾里得空間
-- CGA5D: Cl(6,1) - 5D 歐幾里得空間
+- CGA0D: Cl(1,1) - 0D 歐幾里得空間 (4 blades)
+- CGA1D: Cl(2,1) - 1D 歐幾里得空間 (8 blades)
+- CGA2D: Cl(3,1) - 2D 歐幾里得空間 (16 blades)
+- CGA3D: Cl(4,1) - 3D 歐幾里得空間 (32 blades)
+- CGA4D: Cl(5,1) - 4D 歐幾里得空間 (64 blades)
+- CGA5D: Cl(6,1) - 5D 歐幾里得空間 (128 blades)
+- CGA6D+: Cl(n+1,1) - 任意維度 (運行時計算)
 
 所有 CGA(n) 使用 Cl(n+1,1) 代數，簽名為 (+,...,+,-):
 - n 個正簽名的歐幾里得基底 (e1, e2, ..., en)
@@ -24,7 +26,7 @@ def create_cga_algebra(euclidean_dim: int):
     建立 CGA Cl(n+1,1) 代數。
 
     Args:
-        euclidean_dim: 歐幾里得空間維度 (1, 2, 3, 4, 或 5)
+        euclidean_dim: 歐幾里得空間維度 (0, 1, 2, ... 任意非負整數)
 
     Returns:
         layout: CGA 代數布局物件
@@ -32,10 +34,14 @@ def create_cga_algebra(euclidean_dim: int):
         stuff: CGA 特殊物件 (eo, einf, up, down)
 
     Raises:
-        ValueError: 若 euclidean_dim 不在 [1, 5] 範圍內
+        ValueError: 若 euclidean_dim < 0
+
+    Note:
+        對於高維度 (n >= 10)，計算可能較慢且需要大量記憶體。
+        CGA(n) 有 2^(n+2) 個 blades，例如 CGA(10) 有 4096 個 blades。
     """
-    if euclidean_dim < 1 or euclidean_dim > 5:
-        raise ValueError(f"euclidean_dim 必須在 [1, 5] 範圍內，收到: {euclidean_dim}")
+    if euclidean_dim < 0:
+        raise ValueError(f"euclidean_dim 必須為非負整數，收到: {euclidean_dim}")
 
     # 建立基底歐幾里得代數 Cl(n)
     G_n, _ = Cl(euclidean_dim)

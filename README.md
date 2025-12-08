@@ -4,20 +4,23 @@ High-performance Conformal Geometric Algebra (CGA) library for PyTorch, optimize
 
 ## Features
 
-- **Multi-dimensional CGA support**: CGA1D to CGA5D (Cl(2,1) to Cl(6,1))
+- **Unified interface**: `CGA(n)` and `Cl(p,q,r)` factory functions
+- **Multi-dimensional CGA support**: CGA0D to CGA5D (hardcoded), CGA6D+ (runtime)
 - **Hardware acceleration**: CPU, Apple MPS, NVIDIA CUDA
 - **ONNX compatible**: Loop-free operations for TensorRT deployment
 - **High performance**: Up to 284x faster than clifford library
 
 ## Supported Algebras
 
-| Algebra | Signature | Blades | Point | Motor | Peak Throughput |
-|---------|-----------|--------|-------|-------|-----------------|
-| CGA1D | Cl(2,1) | 8 | 3 | 4 | 40M pts/sec |
-| CGA2D | Cl(3,1) | 16 | 4 | 7 | 10.8M pts/sec |
-| CGA3D | Cl(4,1) | 32 | 5 | 16 | 2.7M pts/sec |
-| CGA4D | Cl(5,1) | 64 | 6 | 31 | 521K pts/sec |
-| CGA5D | Cl(6,1) | 128 | 7 | 64 | 161K pts/sec |
+| Algebra | Signature | Blades | Point | Motor | Algorithm |
+|---------|-----------|--------|-------|-------|-----------|
+| CGA0D | Cl(1,1) | 4 | 2 | 2 | Hardcoded |
+| CGA1D | Cl(2,1) | 8 | 3 | 4 | Hardcoded |
+| CGA2D | Cl(3,1) | 16 | 4 | 7 | Hardcoded |
+| CGA3D | Cl(4,1) | 32 | 5 | 16 | Hardcoded |
+| CGA4D | Cl(5,1) | 64 | 6 | 31 | Hardcoded |
+| CGA5D | Cl(6,1) | 128 | 7 | 64 | Hardcoded |
+| CGA6D+ | Cl(n+1,1) | 2^(n+2) | n+2 | varies | Runtime |
 
 ## Installation
 
@@ -36,7 +39,33 @@ pip install -e .
 
 ## Quick Start
 
-### Basic Usage
+### Unified Interface (Recommended)
+
+```python
+import torch
+from fast_clifford import CGA, Cl
+
+# Create CGA by Euclidean dimension
+cga3d = CGA(3)  # CGA3D Cl(4,1,0)
+print(f"Blades: {cga3d.blade_count}")  # 32
+
+# Or create by Clifford signature
+cga3d = Cl(4, 1)  # Same as CGA(3)
+
+# Encode 3D point to UPGC
+x = torch.tensor([[1.0, 2.0, 3.0]])
+point = cga3d.upgc_encode(x)
+
+# Create motor and apply transformation
+motor = torch.randn(1, 16)  # 16 motor components
+transformed = cga3d.sandwich_product_sparse(motor, point)
+
+# Decode back to 3D
+result = cga3d.upgc_decode(transformed)
+print(result)  # tensor([[x', y', z']])
+```
+
+### Direct Module Access
 
 ```python
 import torch
@@ -99,9 +128,40 @@ torch.onnx.export(
 
 ## API Reference
 
-### Available Algebras
+### Unified Interface
 
-Each algebra module (`cga1d`, `cga2d`, `cga3d`, `cga4d`, `cga5d`) provides:
+```python
+from fast_clifford import CGA, Cl
+
+# Create by Euclidean dimension
+cga = CGA(n)  # n=0..5 hardcoded, n>=6 runtime
+
+# Create by Clifford signature
+cga = Cl(p, q, r=0)  # Cl(n+1, 1) for CGA(n)
+```
+
+**CGAAlgebraBase Properties:**
+- `euclidean_dim` - Euclidean dimension n
+- `blade_count` - Total blades (2^(n+2))
+- `point_count` - UPGC point components (n+2)
+- `motor_count` - Motor components
+- `clifford_notation` - e.g., "Cl(4,1,0)"
+
+**CGAAlgebraBase Methods:**
+- `upgc_encode(x)` - Euclidean to UPGC point
+- `upgc_decode(point)` - UPGC to Euclidean point
+- `geometric_product_full(a, b)` - Full geometric product
+- `sandwich_product_sparse(motor, point)` - Optimized M × X × M̃
+- `reverse_full(mv)` - Multivector reverse
+- `reverse_motor(motor)` - Motor reverse
+- `get_care_layer()` - Get CareLayer module
+- `get_encoder()` - Get UPGC encoder module
+- `get_decoder()` - Get UPGC decoder module
+- `get_transform_pipeline()` - Get complete pipeline
+
+### Direct Module Access
+
+Each algebra module (`cga0d`, `cga1d`, `cga2d`, `cga3d`, `cga4d`, `cga5d`) provides:
 
 **Functions:**
 - `geometric_product_full(a, b)` - Full geometric product
@@ -120,22 +180,17 @@ Each algebra module (`cga1d`, `cga2d`, `cga3d`, `cga4d`, `cga5d`) provides:
 ### Example: Multi-dimensional
 
 ```python
-from fast_clifford.algebras import cga1d, cga2d, cga3d, cga4d, cga5d
+import torch
+from fast_clifford import CGA
 
-# 1D transformation
-motor_1d = torch.randn(1, 4)
-point_1d = cga1d.upgc_encode(torch.tensor([[2.0]]))
-result_1d = cga1d.sandwich_product_sparse(motor_1d, point_1d)
-
-# 2D transformation
-motor_2d = torch.randn(1, 7)
-point_2d = cga2d.upgc_encode(torch.tensor([[1.0, 2.0]]))
-result_2d = cga2d.sandwich_product_sparse(motor_2d, point_2d)
-
-# 4D transformation
-motor_4d = torch.randn(1, 31)
-point_4d = cga4d.upgc_encode(torch.tensor([[1.0, 2.0, 3.0, 4.0]]))
-result_4d = cga4d.sandwich_product_sparse(motor_4d, point_4d)
+# Works uniformly across all dimensions
+for n in [0, 1, 2, 3, 4, 5, 6]:
+    cga = CGA(n)
+    x = torch.randn(1, n) if n > 0 else torch.zeros(1, 0)
+    point = cga.upgc_encode(x)
+    motor = torch.randn(1, cga.motor_count)
+    result = cga.sandwich_product_sparse(motor, point)
+    print(f"CGA{n}D: {cga.blade_count} blades, {cga.motor_count} motor components")
 ```
 
 ## Performance
@@ -174,12 +229,18 @@ uv run pytest --cov=fast_clifford
 
 ```
 fast_clifford/
+├── __init__.py         # CGA, Cl unified interface exports
 ├── algebras/
+│   ├── cga0d/          # Cl(1,1) - 0D CGA
 │   ├── cga1d/          # Cl(2,1) - 1D CGA
 │   ├── cga2d/          # Cl(3,1) - 2D CGA
 │   ├── cga3d/          # Cl(4,1) - 3D CGA
 │   ├── cga4d/          # Cl(5,1) - 4D CGA
 │   └── cga5d/          # Cl(6,1) - 5D CGA
+├── cga/                # Unified interface
+│   ├── base.py         # CGAAlgebraBase abstract class
+│   ├── registry.py     # HardcodedCGAWrapper
+│   └── runtime.py      # RuntimeCGAAlgebra (6D+)
 ├── codegen/            # Code generation tools
 │   ├── cga_factory.py  # Algebra factory
 │   ├── generate.py     # Code generator

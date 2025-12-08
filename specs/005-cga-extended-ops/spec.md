@@ -178,3 +178,45 @@
 - 硬編碼實作由 codegen 系統自動生成
 - 運行時實作使用 scatter_add/gather 張量操作
 - 度規符號預先計算並儲存為常數
+
+## Background: 現有 CGA 運算
+
+### 已實作的運算
+
+本功能建立在現有 CGA 運算基礎上。以下運算已在所有維度 (CGA0D-CGA5D + 運行時 6D+) 實作：
+
+| 運算 | 函式名稱 | 說明 |
+|------|----------|------|
+| 幾何積 | `geometric_product_full(a, b)` | 完整多向量幾何積，輸入輸出皆為 blade_count 分量 |
+| 反向 | `reverse_full(mv)` | 多向量反向操作，Grade k 乘以 (-1)^(k(k-1)/2) |
+| 馬達反向 | `reverse_motor(motor)` | 馬達專用反向，稀疏表示 |
+| 三明治積 | `sandwich_product_sparse(motor, point)` | M × X × M~ 變換，用於點的剛體變換 |
+| UPGC 編碼 | `upgc_encode(x)` | 歐氏座標 → CGA 點表示 |
+| UPGC 解碼 | `upgc_decode(point)` | CGA 點表示 → 歐氏座標 |
+
+### 尚未實作的運算
+
+以下基礎 Clifford 代數運算尚未獨立實作（本功能將新增前三項）：
+
+| 運算 | 狀態 | 說明 |
+|------|------|------|
+| 馬達組合 | 🔨 本功能 | `motor_compose(m1, m2)` - Motor × Motor |
+| 幾何內積 | 🔨 本功能 | `inner_product(a, b)` - 度規內積 (Grade 0) |
+| 指數映射 | 🔨 本功能 | `exp_bivector(B)` - Bivector → Motor |
+| 楔積 | ❌ 未實作 | a ∧ b - Outer Product |
+| 左縮併 | ❌ 未實作 | a ⌋ b - Left Contraction |
+| 右縮併 | ❌ 未實作 | a ⌊ b - Right Contraction |
+| Grade 提取 | ❌ 未實作 | ⟨a⟩_k - 提取特定 Grade 分量 |
+| 對偶 | ❌ 未實作 | a* - Dual |
+| 正規化 | ❌ 未實作 | a / |a| - Normalize |
+
+**注意**：加法/減法直接使用 PyTorch 張量運算 (`+`/`-`) 即可，無需額外實作。
+
+### 運算關係
+
+```
+楔積:     a ∧ b = ⟨ab⟩_{|a|+|b|}     (Grade 提升)
+左縮併:   a ⌋ b = ⟨ab⟩_{|b|-|a|}     (Grade 降低)
+幾何內積: a · b = ⟨ab⟩_0             (本功能實作)
+幾何積:   ab = a ∧ b + a ⌋ b + ...   (已實作)
+```

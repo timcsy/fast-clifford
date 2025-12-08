@@ -330,7 +330,61 @@ fast_clifford/
 
 ---
 
-## Phase 12: User Story 10 - Unified Layer Naming (Refactor)
+## Phase 12: User Story 10 - Operator Overloading (Priority: P2)
+
+**Goal**: 開發者可使用直觀的 Python 運算子操作多向量
+
+**Independent Test**: 驗證 `a * b` 等同於 `geometric_product(a, b)`
+
+### Operator Mapping Table
+
+| 運算子 | Python 方法 | CGA 操作 |
+|--------|------------|----------|
+| `a * b` | `__mul__` | 幾何積 (geometric product) |
+| `a ^ b` | `__xor__` | 楔積 (outer product) |
+| `a \| b` | `__or__` | 內積 (inner product) |
+| `a @ b` | `__matmul__` | 左縮併 (left contraction) |
+| `a + b` | `__add__` | 加法 |
+| `a - b` | `__sub__` | 減法 |
+| `-a` | `__neg__` | 取負 |
+| `~a` | `__invert__` | 反向 (reverse) |
+| `a * s` | `__mul__` | 標量右乘 |
+| `s * a` | `__rmul__` | 標量左乘 |
+| `a / s` | `__truediv__` | 標量除法 |
+
+### Tests for User Story 10
+
+- [ ] T119 [P] [US10] 建立 fast_clifford/tests/test_operators.py 測試框架
+- [ ] T120 [P] [US10] 新增幾何積運算子測試：`a * b == geometric_product(a, b)`
+- [ ] T121 [P] [US10] 新增楔積運算子測試：`a ^ b == outer_product(a, b)`
+- [ ] T122 [P] [US10] 新增內積運算子測試：`a | b == inner_product(a, b)`
+- [ ] T123 [P] [US10] 新增左縮併運算子測試：`a @ b == left_contraction(a, b)`
+- [ ] T124 [P] [US10] 新增加減法運算子測試
+- [ ] T125 [P] [US10] 新增取負運算子測試：`-a`
+- [ ] T126 [P] [US10] 新增反向運算子測試：`~a == reverse(a)`
+- [ ] T127 [P] [US10] 新增標量乘除法測試：`a * s`, `s * a`, `a / s`
+- [ ] T128 [P] [US10] 新增批次維度測試
+- [ ] T129 [P] [US10] 新增 autograd 梯度傳播測試
+
+### Implementation for User Story 10
+
+- [ ] T130 [US10] 在 fast_clifford/cga/ 新增 multivector.py 定義 `Multivector` 類別
+- [ ] T131 [US10] 實作 `Multivector.__mul__` 和 `__rmul__` (幾何積/標量乘)
+- [ ] T132 [US10] 實作 `Multivector.__xor__` (楔積)
+- [ ] T133 [US10] 實作 `Multivector.__or__` (內積)
+- [ ] T134 [US10] 實作 `Multivector.__matmul__` (左縮併)
+- [ ] T135 [US10] 實作 `Multivector.__add__`, `__sub__`, `__neg__` (加減取負)
+- [ ] T136 [US10] 實作 `Multivector.__invert__` (反向)
+- [ ] T137 [US10] 實作 `Multivector.__truediv__` (標量除法)
+- [ ] T138 [US10] 在 CGAAlgebraBase 新增 `multivector(tensor)` 工廠方法
+- [ ] T139 [US10] 更新 fast_clifford/__init__.py 匯出 `Multivector` 類別
+- [ ] T140 [US10] 執行 US10 測試驗證 (T119-T129)
+
+**Checkpoint**: Operator Overloading 功能完成
+
+---
+
+## Phase 13: User Story 11 - Unified Layer Naming (Refactor)
 
 **Purpose**: 統一 Layer 命名，移除 CARE 特定名稱（不向後相容）
 
@@ -345,65 +399,65 @@ fast_clifford/
 | `CGA{n}DTransformPipeline` | `CGAPipeline` |
 | `get_care_layer()` | `get_transform_layer()` |
 
-### Tests for User Story 10
+### Tests for User Story 11
 
-- [ ] T119 [P] [US10] 建立 fast_clifford/tests/test_unified_layers.py 測試框架
-- [ ] T120 [P] [US10] 新增 CGATransformLayer 實例化測試 (n=0-5)
-- [ ] T121 [P] [US10] 新增 CGAEncoder/CGADecoder 輸入輸出形狀測試
-- [ ] T122 [P] [US10] 新增 CGAPipeline 端對端測試
-- [ ] T123 [P] [US10] 新增 get_transform_layer() 方法測試
-- [ ] T124 [P] [US10] 新增運行時 (n≥6) 統一 Layer 測試
+- [ ] T141 [P] [US11] 建立 fast_clifford/tests/test_unified_layers.py 測試框架
+- [ ] T142 [P] [US11] 新增 CGATransformLayer 實例化測試 (n=0-5)
+- [ ] T143 [P] [US11] 新增 CGAEncoder/CGADecoder 輸入輸出形狀測試
+- [ ] T144 [P] [US11] 新增 CGAPipeline 端對端測試
+- [ ] T145 [P] [US11] 新增 get_transform_layer() 方法測試
+- [ ] T146 [P] [US11] 新增運行時 (n≥6) 統一 Layer 測試
 
 ### Implementation
 
-- [ ] T125 [P] [US10] 在 fast_clifford/cga/ 新增 layers.py 定義統一介面類別 `CGATransformLayer`, `CGAEncoder`, `CGADecoder`, `CGAPipeline`
-- [ ] T126 [P] [US10] 移除 fast_clifford/algebras/cga0d/layers.py 的舊類別，改為從 cga/layers.py 匯入
-- [ ] T127 [P] [US10] 移除 fast_clifford/algebras/cga1d/layers.py 的舊類別，改為從 cga/layers.py 匯入
-- [ ] T128 [P] [US10] 移除 fast_clifford/algebras/cga2d/layers.py 的舊類別，改為從 cga/layers.py 匯入
-- [ ] T129 [P] [US10] 移除 fast_clifford/algebras/cga3d/layers.py 的舊類別，改為從 cga/layers.py 匯入
-- [ ] T130 [P] [US10] 移除 fast_clifford/algebras/cga4d/layers.py 的舊類別，改為從 cga/layers.py 匯入
-- [ ] T131 [P] [US10] 移除 fast_clifford/algebras/cga5d/layers.py 的舊類別，改為從 cga/layers.py 匯入
-- [ ] T132 [US10] 更新 fast_clifford/cga/runtime.py 移除 `RuntimeCGACareLayer`，改用統一 `CGATransformLayer`
-- [ ] T133 [US10] 更新 fast_clifford/cga/base.py 將 `get_care_layer()` 改為 `get_transform_layer()`（移除舊方法）
-- [ ] T134 [US10] 更新 fast_clifford/cga/registry.py 配合新命名
-- [ ] T135 [US10] 執行 US10 測試驗證 (T119-T124)
+- [ ] T147 [P] [US11] 在 fast_clifford/cga/ 新增 layers.py 定義統一介面類別 `CGATransformLayer`, `CGAEncoder`, `CGADecoder`, `CGAPipeline`
+- [ ] T148 [P] [US11] 移除 fast_clifford/algebras/cga0d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T149 [P] [US11] 移除 fast_clifford/algebras/cga1d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T150 [P] [US11] 移除 fast_clifford/algebras/cga2d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T151 [P] [US11] 移除 fast_clifford/algebras/cga3d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T152 [P] [US11] 移除 fast_clifford/algebras/cga4d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T153 [P] [US11] 移除 fast_clifford/algebras/cga5d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T154 [US11] 更新 fast_clifford/cga/runtime.py 移除 `RuntimeCGACareLayer`，改用統一 `CGATransformLayer`
+- [ ] T155 [US11] 更新 fast_clifford/cga/base.py 將 `get_care_layer()` 改為 `get_transform_layer()`（移除舊方法）
+- [ ] T156 [US11] 更新 fast_clifford/cga/registry.py 配合新命名
+- [ ] T157 [US11] 執行 US11 測試驗證 (T141-T146)
 
 **Checkpoint**: Layer 命名統一完成
 
 ---
 
-## Phase 13: High-Dimensional Runtime for New Operations
+## Phase 14: High-Dimensional Runtime for New Operations
 
 **Purpose**: 為新增的代數操作實作 6D+ 運行時支援
 
 ### Implementation
 
-- [ ] T136 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.outer_product
-- [ ] T137 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.left_contraction
-- [ ] T138 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.right_contraction
-- [ ] T139 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.grade_select
-- [ ] T140 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.dual
-- [ ] T141 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.normalize
+- [ ] T158 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.outer_product
+- [ ] T159 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.left_contraction
+- [ ] T160 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.right_contraction
+- [ ] T161 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.grade_select
+- [ ] T162 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.dual
+- [ ] T163 [US4+] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.normalize
 
 ### Tests
 
-- [ ] T142 [P] 新增 CGA(6) 新操作的 clifford 對照測試
-- [ ] T143 [P] 執行所有運行時操作測試
+- [ ] T164 [P] 新增 CGA(6) 新操作的 clifford 對照測試
+- [ ] T165 [P] 執行所有運行時操作測試
 
 **Checkpoint**: 所有操作 6D+ 運行時支援完成
 
 ---
 
-## Phase 14: Polish & Cross-Cutting Concerns
+## Phase 15: Polish & Cross-Cutting Concerns
 
 **Purpose**: 整合、匯出、文檔更新
 
-- [ ] T144 [P] 更新 fast_clifford/__init__.py 匯出新操作和統一 Layer 類別
-- [ ] T145 [P] 更新 README.md 新增 Extended Operations API 文檔和新 Layer 命名
-- [ ] T146 執行完整測試套件確認無迴歸
-- [ ] T147 執行所有 ONNX 匯出測試驗證無 Loop/If 節點
-- [ ] T148 執行 quickstart.md 範例驗證
-- [ ] T149 效能基準測試：驗證 SC-001（達完整幾何積 50%+）
+- [ ] T166 [P] 更新 fast_clifford/__init__.py 匯出新操作、統一 Layer 和 Multivector 類別
+- [ ] T167 [P] 更新 README.md 新增 Extended Operations API 文檔、運算子重載和新 Layer 命名
+- [ ] T168 執行完整測試套件確認無迴歸
+- [ ] T169 執行所有 ONNX 匯出測試驗證無 Loop/If 節點
+- [ ] T170 執行 quickstart.md 範例驗證
+- [ ] T171 效能基準測試：驗證 SC-001（達完整幾何積 50%+）
 
 ---
 
@@ -417,10 +471,11 @@ fast_clifford/
   - US1 和 US2 可平行進行（都是 P1）
   - US3 和 US4 可平行進行（都是 P2）
 - **Phase 7-11 (User Stories 5-9)**: 代數操作（P3），依賴 Phase 2 完成
-  - US5-9 皆可平行進行
-- **Phase 12 (User Story 10 - Layer Naming)**: 依賴 Phase 3-11 完成
-- **Phase 13 (Runtime for New Ops)**: 依賴 Phase 7-11 完成
-- **Phase 14 (Polish)**: 依賴所有 User Stories 完成
+  - US5-9 皆可平行進行（US9 依賴 US2）
+- **Phase 12 (User Story 10 - Operators)**: 依賴 Phase 3-11 完成（需要所有操作）
+- **Phase 13 (User Story 11 - Layer Naming)**: 依賴 Phase 3-11 完成
+- **Phase 14 (Runtime for New Ops)**: 依賴 Phase 7-11 完成
+- **Phase 15 (Polish)**: 依賴所有 User Stories 完成
 
 ### User Story Dependencies
 
@@ -433,7 +488,8 @@ fast_clifford/
 - **US7 (Grade Selection)**: 可於 Phase 2 後開始
 - **US8 (Dual)**: 可於 Phase 2 後開始
 - **US9 (Normalize)**: 依賴 US2 (inner_product) 完成（用於計算範數）
-- **US10 (Unified Layers)**: 在其他 User Stories 完成後進行
+- **US10 (Operators)**: 依賴所有操作完成（需要 geometric_product, outer_product 等）
+- **US11 (Unified Layers)**: 在其他 User Stories 完成後進行
 
 ### Within Each User Story
 
@@ -451,7 +507,8 @@ fast_clifford/
 - Phase 5: T045-T052 測試可平行，T053-T058 更新可平行
 - Phase 6: T062-T067 測試可平行
 - Phase 7-11: 各 Phase 測試和實作可平行
-- Phase 12: T119-T124 測試可平行，T125-T131 更新可平行
+- Phase 12: T119-T129 測試可平行，T130-T139 實作可平行
+- Phase 13: T141-T146 測試可平行，T147-T156 更新可平行
 
 ---
 
@@ -499,10 +556,11 @@ Task: "T021 [US1] 重新生成 cga2d/functional.py"
 9. 加入 US8 (Dual) → 測試 → 交付
 10. 加入 US9 (Normalize) → 測試 → 交付
 
-**重構與收尾**:
-11. 加入 US10 (Unified Layers) → 測試 → 交付
-12. Runtime for New Ops → 測試 → 交付
-13. Polish → 最終驗證
+**使用者體驗與重構**:
+11. 加入 US10 (Operators) → 測試 → 交付
+12. 加入 US11 (Unified Layers) → 測試 → 交付
+13. Runtime for New Ops → 測試 → 交付
+14. Polish → 最終驗證
 
 ---
 

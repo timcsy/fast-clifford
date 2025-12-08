@@ -17,11 +17,24 @@
 
 ```text
 fast_clifford/
-├── cga/base.py, registry.py, runtime.py
+├── cga/base.py, registry.py, runtime.py, multivector.py
 ├── codegen/generate.py, sparse_analysis.py
 ├── algebras/cga{0-5}d/functional.py
 └── tests/
 ```
+
+## Naming Convention (New!)
+
+| 舊名稱 | 新名稱 | 說明 |
+|--------|--------|------|
+| Motor | EvenVersor | 通用 Clifford 代數偶數 Versor |
+| motor_compose_sparse | compose_even_versor | 偶數 Versor 組合 |
+| sandwich_product_sparse | sandwich_product_even_versor | 偶數 Versor 三明治積 |
+| motor_count | even_versor_count | 偶數 Versor 分量數 |
+| - | Similitude | CGA 專用子類別（更快） |
+| - | compose_similitude | Similitude 組合（更快） |
+| - | sandwich_product_similitude | Similitude 三明治積（更快） |
+| - | similitude_count | Similitude 分量數 |
 
 ---
 
@@ -30,7 +43,8 @@ fast_clifford/
 **Purpose**: 擴展 codegen 系統以支援新操作
 
 ### 核心操作 codegen (P1-P2)
-- [ ] T001 [P] 在 fast_clifford/codegen/sparse_analysis.py 新增 `get_motor_compose_terms(dim)` 函式
+- [ ] T001 [P] 在 fast_clifford/codegen/sparse_analysis.py 新增 `get_compose_even_versor_terms(dim)` 函式
+- [ ] T001a [P] 在 fast_clifford/codegen/sparse_analysis.py 新增 `get_compose_similitude_terms(dim)` 函式（CGA 專用）
 - [ ] T002 [P] 在 fast_clifford/codegen/sparse_analysis.py 新增 `get_inner_product_signs(dim)` 函式
 - [ ] T003 [P] 在 fast_clifford/codegen/sparse_analysis.py 新增 `get_bivector_squared_terms(dim)` 函式
 - [ ] T004 [P] 在 fast_clifford/codegen/sparse_analysis.py 新增 `get_bivector_indices(dim)` 函式
@@ -52,7 +66,9 @@ fast_clifford/
 **⚠️ CRITICAL**: 所有 User Story 依賴此 Phase 完成
 
 ### 核心操作 codegen 生成器 (P1-P2)
-- [ ] T005 在 fast_clifford/codegen/generate.py 新增 `_generate_motor_compose_sparse()` 方法
+- [ ] T005 在 fast_clifford/codegen/generate.py 新增 `_generate_compose_even_versor()` 方法
+- [ ] T005a 在 fast_clifford/codegen/generate.py 新增 `_generate_compose_similitude()` 方法
+- [ ] T005b 在 fast_clifford/codegen/generate.py 新增 `_generate_sandwich_product_similitude()` 方法
 - [ ] T006 在 fast_clifford/codegen/generate.py 新增 `_generate_inner_product_full()` 方法
 - [ ] T007 在 fast_clifford/codegen/generate.py 新增 `_generate_bivector_squared_scalar()` 輔助方法
 - [ ] T008 在 fast_clifford/codegen/generate.py 新增 `_generate_exp_bivector()` 方法
@@ -67,43 +83,47 @@ fast_clifford/
 
 ### 整合與介面
 - [ ] T009 更新 fast_clifford/codegen/generate.py 的 `generate_module()` 和 `generate_sparse_section()` 整合所有新操作
-- [ ] T010 在 fast_clifford/cga/base.py 新增所有新操作的抽象方法
-- [ ] T011 在 fast_clifford/cga/base.py 新增 `bivector_count`, `max_grade` 屬性
+- [ ] T010 在 fast_clifford/cga/base.py 新增所有新操作的抽象方法（`compose()`, `sandwich_product()`, `reverse()` 統一 API）
+- [ ] T010a 在 fast_clifford/cga/base.py 定義 `Versor`, `EvenVersor`, `Similitude` 類型層級
+- [ ] T011 在 fast_clifford/cga/base.py 新增 `bivector_count`, `max_grade`, `even_versor_count`, `similitude_count` 屬性
 
 **Checkpoint**: codegen 和 base.py 準備完成，可開始 User Story 實作
 
 ---
 
-## Phase 3: User Story 1 - Motor Composition (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 - EvenVersor Composition (Priority: P1) 🎯 MVP
 
-**Goal**: 開發者可組合兩個馬達為單一馬達
+**Goal**: 開發者可組合兩個偶數 Versor 為單一偶數 Versor
 
-**Independent Test**: 驗證 `motor_compose(rotation, translation)` 產生正確複合變換
+**Independent Test**: 驗證 `compose(rotation, translation)` 產生正確複合變換
 
 ### Tests for User Story 1
 
-- [ ] T012 [P] [US1] 建立 fast_clifford/tests/test_motor_compose.py 測試框架
-- [ ] T013 [P] [US1] 新增單位元測試：`motor_compose(identity, M) == M`
+- [ ] T012 [P] [US1] 建立 fast_clifford/tests/test_compose.py 測試框架
+- [ ] T013 [P] [US1] 新增單位元測試：`compose(identity, V) == V`
 - [ ] T014 [P] [US1] 新增結合律測試：`compose(compose(A,B),C) == compose(A,compose(B,C))`
-- [ ] T015 [P] [US1] 新增逆元測試：`motor_compose(M, reverse(M)) ≈ identity`
+- [ ] T015 [P] [US1] 新增逆元測試：`compose(V, reverse(V)) ≈ identity`
 - [ ] T016 [P] [US1] 新增 clifford 庫對照測試 (n=0-5)
 - [ ] T017 [P] [US1] 新增批次維度測試
 - [ ] T018 [P] [US1] 新增 ONNX 匯出測試 (無 Loop/If 節點)
 - [ ] T018a [P] [US1] 新增 autograd 梯度傳播測試 (FR-018)
+- [ ] T018b [P] [US1] 新增統一 API 路由測試：`compose()` 自動路由到 `compose_even_versor`
+- [ ] T018c [P] [US1] 新增 Similitude 組合測試：`compose_similitude` 更快且正確
 
 ### Implementation for User Story 1
 
-- [ ] T019 [P] [US1] 更新 fast_clifford/algebras/cga0d/functional.py 加入 `motor_compose_sparse`
-- [ ] T020 [P] [US1] 更新 fast_clifford/algebras/cga1d/functional.py 加入 `motor_compose_sparse`
-- [ ] T021 [P] [US1] 更新 fast_clifford/algebras/cga2d/functional.py 加入 `motor_compose_sparse`
-- [ ] T022 [P] [US1] 更新 fast_clifford/algebras/cga3d/functional.py 加入 `motor_compose_sparse`
-- [ ] T023 [P] [US1] 更新 fast_clifford/algebras/cga4d/functional.py 加入 `motor_compose_sparse`
-- [ ] T024 [P] [US1] 更新 fast_clifford/algebras/cga5d/functional.py 加入 `motor_compose_sparse`
-- [ ] T025 [US1] 在 fast_clifford/cga/registry.py 實作 HardcodedCGAWrapper.motor_compose
-- [ ] T026 [US1] 更新 fast_clifford/algebras/cga{0-5}d/__init__.py 匯出 motor_compose_sparse
-- [ ] T027 [US1] 執行 motor_compose 測試驗證 (T012-T018)
+- [ ] T019 [P] [US1] 更新 fast_clifford/algebras/cga0d/functional.py 加入 `compose_even_versor`, `compose_similitude`
+- [ ] T020 [P] [US1] 更新 fast_clifford/algebras/cga1d/functional.py 加入 `compose_even_versor`, `compose_similitude`
+- [ ] T021 [P] [US1] 更新 fast_clifford/algebras/cga2d/functional.py 加入 `compose_even_versor`, `compose_similitude`
+- [ ] T022 [P] [US1] 更新 fast_clifford/algebras/cga3d/functional.py 加入 `compose_even_versor`, `compose_similitude`
+- [ ] T023 [P] [US1] 更新 fast_clifford/algebras/cga4d/functional.py 加入 `compose_even_versor`, `compose_similitude`
+- [ ] T024 [P] [US1] 更新 fast_clifford/algebras/cga5d/functional.py 加入 `compose_even_versor`, `compose_similitude`
+- [ ] T025 [US1] 在 fast_clifford/cga/registry.py 實作 HardcodedCGAWrapper.compose（統一 API）
+- [ ] T025a [US1] 在 fast_clifford/cga/registry.py 實作靜態路由邏輯（EvenVersor vs Similitude）
+- [ ] T026 [US1] 更新 fast_clifford/algebras/cga{0-5}d/__init__.py 匯出新函式
+- [ ] T027 [US1] 執行 compose 測試驗證 (T012-T018c)
 
-**Checkpoint**: Motor Composition 功能完成且可獨立測試
+**Checkpoint**: EvenVersor/Similitude Composition 功能完成且可獨立測試
 
 ---
 
@@ -143,7 +163,7 @@ fast_clifford/
 
 ## Phase 5: User Story 3 - Exponential Map (Priority: P2)
 
-**Goal**: 開發者可從 Bivector 生成旋轉馬達
+**Goal**: 開發者可從 Bivector 生成旋轉偶數 Versor
 
 **Independent Test**: 驗證 `exp_bivector(0) == identity` 且 90° 旋轉正確
 
@@ -184,7 +204,7 @@ fast_clifford/
 ### Tests for User Story 4
 
 - [ ] T062 [P] [US4] 建立 fast_clifford/tests/test_runtime_extended.py 測試框架
-- [ ] T063 [P] [US4] 新增 CGA(6) motor_compose clifford 對照測試
+- [ ] T063 [P] [US4] 新增 CGA(6) compose clifford 對照測試
 - [ ] T064 [P] [US4] 新增 CGA(6) inner_product clifford 對照測試
 - [ ] T065 [P] [US4] 新增 CGA(6) exp_bivector clifford 對照測試
 - [ ] T066 [P] [US4] 新增 CGA(7) 基本功能測試
@@ -192,12 +212,12 @@ fast_clifford/
 
 ### Implementation for User Story 4
 
-- [ ] T068 [US4] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.motor_compose
+- [ ] T068 [US4] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.compose
 - [ ] T069 [US4] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.inner_product
 - [ ] T070 [US4] 在 fast_clifford/cga/runtime.py 實作 RuntimeCGAAlgebra.exp_bivector
-- [ ] T071 [US4] 在 fast_clifford/cga/runtime.py 新增 `_embed_motor`, `_extract_motor` 輔助方法
+- [ ] T071 [US4] 在 fast_clifford/cga/runtime.py 新增 `_embed_even_versor`, `_extract_even_versor` 輔助方法
 - [ ] T072 [US4] 在 fast_clifford/cga/runtime.py 新增 `_embed_bivector`, `_inner_product_signs` 輔助方法
-- [ ] T073 [US4] 在 fast_clifford/cga/runtime.py 新增 `bivector_count` 屬性
+- [ ] T073 [US4] 在 fast_clifford/cga/runtime.py 新增 `bivector_count`, `even_versor_count` 屬性
 - [ ] T074 [US4] 執行 runtime 測試驗證 (T062-T067)
 
 **Checkpoint**: 所有 User Stories 完成
@@ -340,7 +360,7 @@ fast_clifford/
 
 | 運算子 | Python 方法 | CGA 操作 |
 |--------|------------|----------|
-| `a * b` | `__mul__` | 幾何積 (geometric product) |
+| `a * b` | `__mul__` | 幾何積 (geometric product) 或 compose（靜態路由） |
 | `a ^ b` | `__xor__` | 楔積 (outer product) |
 | `a \| b` | `__or__` | 內積 (inner product) |
 | `a << b` | `__lshift__` | 左縮併 (left contraction) |
@@ -357,18 +377,20 @@ fast_clifford/
 | `a ** n` | `__pow__` | 整數冪次 (n 次幾何積) |
 | `a ** -1` | `__pow__` | 逆元 (等同 `a.inverse()`) |
 | `a.inverse()` | `inverse()` | 多向量逆元 (`~a / (a * ~a)`) |
-| `B.exp()` | `exp()` | 指數映射 (Bivector → Motor) |
+| `B.exp()` | `exp()` | 指數映射 (Bivector → EvenVersor) |
 
 ### Type-Based Static Routing (ONNX-Safe)
 
 | 類型組合 | 路由目標 | 說明 |
 |----------|----------|------|
-| `motor * motor` | `motor_compose_sparse` | Motor × Motor → Motor |
-| `motor @ point` | `sandwich_product_sparse` | Motor sandwich Point → Point |
-| `motor @ bivector` | `sandwich_product_sparse` | Motor sandwich Bivector → Bivector |
+| `similitude * similitude` | `compose_similitude` | Similitude × Similitude → Similitude（最快） |
+| `similitude * even_versor` | `compose_even_versor` | 類型退化 → EvenVersor |
+| `even_versor * even_versor` | `compose_even_versor` | EvenVersor × EvenVersor → EvenVersor |
+| `similitude @ point` | `sandwich_product_similitude` | Similitude sandwich Point → Point（最快） |
+| `even_versor @ point` | `sandwich_product_even_versor` | EvenVersor sandwich Point → Point |
 | `未標記 * 未標記` | `geometric_product_full` | 通用幾何積（保證正確） |
 
-**Note**: 靜態路由在 Python 圖構建時決定，確保 ONNX 匯出無 If 節點。
+**Note**: 靜態路由在 Python 圖構建時決定（基於 `kind` 屬性），確保 ONNX 匯出無 If 節點。
 
 ### Tests for User Story 10
 
@@ -392,18 +414,23 @@ fast_clifford/
 - [ ] T129b [P] [US10] 新增逆元測試：`a * a.inverse() ≈ identity`
 - [ ] T129c [P] [US10] 新增不可逆多向量測試：`null_vector.inverse()` 應拋出例外或返回 NaN
 - [ ] T129d [P] [US10] 新增單位元逆元測試：`scalar(1).inverse() == scalar(1)`
-- [ ] T129e [P] [US10] 新增類型標記工廠方法測試：`cga.motor()`, `cga.point()`, `cga.bivector()`
-- [ ] T129f [P] [US10] 新增靜態路由測試：Motor × Motor 使用 sparse 版本
-- [ ] T129g [P] [US10] 新增靜態路由測試：Motor @ Point 使用 sparse 版本
+- [ ] T129e [P] [US10] 新增類型標記工廠方法測試：`cga.even_versor()`, `cga.similitude()`, `cga.point()`, `cga.bivector()`
+- [ ] T129f [P] [US10] 新增靜態路由測試：Similitude × Similitude 使用 `compose_similitude`
+- [ ] T129g [P] [US10] 新增靜態路由測試：EvenVersor × EvenVersor 使用 `compose_even_versor`
+- [ ] T129h [P] [US10] 新增類型退化測試：Similitude × EvenVersor → EvenVersor 操作
+- [ ] T129i [P] [US10] 新增 Similitude @ Point 靜態路由測試
 
 ### Implementation for User Story 10
 
 - [ ] T130 [US10] 在 fast_clifford/cga/ 新增 multivector.py 定義 `Multivector` 類別（含 `kind` 屬性）
-- [ ] T131 [US10] 實作 `Multivector.__mul__` 和 `__rmul__` (幾何積/標量乘，含 Motor×Motor 靜態路由)
+- [ ] T130a [US10] 在 multivector.py 定義 `Versor(Multivector)` 子類別（含 `order` 參數）
+- [ ] T130b [US10] 在 multivector.py 定義 `EvenVersor(Versor)` = `Versor(order='even')` 語法糖
+- [ ] T130c [US10] 在 multivector.py 定義 `Similitude(EvenVersor)` CGA 專用子類別
+- [ ] T131 [US10] 實作 `Multivector.__mul__` 和 `__rmul__` (幾何積/標量乘，含靜態路由)
 - [ ] T132 [US10] 實作 `Multivector.__xor__` (楔積)
 - [ ] T133 [US10] 實作 `Multivector.__or__` (內積)
 - [ ] T134 [US10] 實作 `Multivector.__lshift__` 和 `__rshift__` (左/右縮併)
-- [ ] T134a [US10] 實作 `Multivector.__matmul__` (三明治積，含 Motor@Point 靜態路由)
+- [ ] T134a [US10] 實作 `Multivector.__matmul__` (三明治積，含靜態路由)
 - [ ] T135 [US10] 實作 `Multivector.__add__`, `__sub__`, `__neg__` (加減取負)
 - [ ] T136 [US10] 實作 `Multivector.__invert__` (反向)
 - [ ] T137 [US10] 實作 `Multivector.__truediv__` (標量除法和多向量除法)
@@ -411,9 +438,9 @@ fast_clifford/
 - [ ] T137b [US10] 實作 `Multivector.__pow__` (整數冪次和 ** -1 逆元)
 - [ ] T137c [US10] 實作 `Multivector.exp()` 方法 (Bivector 指數映射)
 - [ ] T138 [US10] 在 CGAAlgebraBase 新增 `multivector(tensor)` 工廠方法
-- [ ] T138a [US10] 在 CGAAlgebraBase 新增 `motor(tensor)`, `point(tensor)`, `bivector(tensor)` 工廠方法
-- [ ] T139 [US10] 更新 fast_clifford/__init__.py 匯出 `Multivector` 類別
-- [ ] T140 [US10] 執行 US10 測試驗證 (T119-T129g)
+- [ ] T138a [US10] 在 CGAAlgebraBase 新增 `even_versor(tensor)`, `similitude(tensor)`, `point(tensor)`, `bivector(tensor)` 工廠方法
+- [ ] T139 [US10] 更新 fast_clifford/__init__.py 匯出 `Multivector`, `Versor`, `EvenVersor`, `Similitude` 類別
+- [ ] T140 [US10] 執行 US10 測試驗證 (T119-T129i)
 
 **Checkpoint**: Operator Overloading 功能完成
 
@@ -421,14 +448,14 @@ fast_clifford/
 
 ## Phase 13: User Story 11 - Unified Layer Naming (Refactor)
 
-**Purpose**: 統一 Layer 命名，移除 CARE 特定名稱（不向後相容）
+**Purpose**: 統一 Layer 命名為 CliffordTransformLayer（不向後相容）
 
 ### 重新命名對照表
 
 | 移除 | 統一後 |
 |------|--------|
-| `CGA{n}DCareLayer` | `CGATransformLayer` |
-| `RuntimeCGACareLayer` | `CGATransformLayer` |
+| `CGA{n}DCareLayer` | `CliffordTransformLayer` |
+| `RuntimeCGACareLayer` | `CliffordTransformLayer` |
 | `UPGC{n}DEncoder` | `CGAEncoder` |
 | `UPGC{n}DDecoder` | `CGADecoder` |
 | `CGA{n}DTransformPipeline` | `CGAPipeline` |
@@ -437,7 +464,7 @@ fast_clifford/
 ### Tests for User Story 11
 
 - [ ] T141 [P] [US11] 建立 fast_clifford/tests/test_unified_layers.py 測試框架
-- [ ] T142 [P] [US11] 新增 CGATransformLayer 實例化測試 (n=0-5)
+- [ ] T142 [P] [US11] 新增 CliffordTransformLayer 實例化測試 (n=0-5)
 - [ ] T143 [P] [US11] 新增 CGAEncoder/CGADecoder 輸入輸出形狀測試
 - [ ] T144 [P] [US11] 新增 CGAPipeline 端對端測試
 - [ ] T145 [P] [US11] 新增 get_transform_layer() 方法測試
@@ -445,14 +472,14 @@ fast_clifford/
 
 ### Implementation
 
-- [ ] T147 [P] [US11] 在 fast_clifford/cga/ 新增 layers.py 定義統一介面類別 `CGATransformLayer`, `CGAEncoder`, `CGADecoder`, `CGAPipeline`
+- [ ] T147 [P] [US11] 在 fast_clifford/cga/ 新增 layers.py 定義統一介面類別 `CliffordTransformLayer`, `CGAEncoder`, `CGADecoder`, `CGAPipeline`
 - [ ] T148 [P] [US11] 移除 fast_clifford/algebras/cga0d/layers.py 的舊類別，改為從 cga/layers.py 匯入
 - [ ] T149 [P] [US11] 移除 fast_clifford/algebras/cga1d/layers.py 的舊類別，改為從 cga/layers.py 匯入
 - [ ] T150 [P] [US11] 移除 fast_clifford/algebras/cga2d/layers.py 的舊類別，改為從 cga/layers.py 匯入
 - [ ] T151 [P] [US11] 移除 fast_clifford/algebras/cga3d/layers.py 的舊類別，改為從 cga/layers.py 匯入
 - [ ] T152 [P] [US11] 移除 fast_clifford/algebras/cga4d/layers.py 的舊類別，改為從 cga/layers.py 匯入
 - [ ] T153 [P] [US11] 移除 fast_clifford/algebras/cga5d/layers.py 的舊類別，改為從 cga/layers.py 匯入
-- [ ] T154 [US11] 更新 fast_clifford/cga/runtime.py 移除 `RuntimeCGACareLayer`，改用統一 `CGATransformLayer`
+- [ ] T154 [US11] 更新 fast_clifford/cga/runtime.py 移除 `RuntimeCGACareLayer`，改用統一 `CliffordTransformLayer`
 - [ ] T155 [US11] 更新 fast_clifford/cga/base.py 將 `get_care_layer()` 改為 `get_transform_layer()`（移除舊方法）
 - [ ] T156 [US11] 更新 fast_clifford/cga/registry.py 配合新命名
 - [ ] T157 [US11] 執行 US11 測試驗證 (T141-T146)
@@ -487,12 +514,13 @@ fast_clifford/
 
 **Purpose**: 整合、匯出、文檔更新
 
-- [ ] T166 [P] 更新 fast_clifford/__init__.py 匯出新操作、統一 Layer 和 Multivector 類別
+- [ ] T166 [P] 更新 fast_clifford/__init__.py 匯出新操作、統一 Layer 和 Multivector/Versor/EvenVersor/Similitude 類別
 - [ ] T167 [P] 更新 README.md 新增 Extended Operations API 文檔、運算子重載和新 Layer 命名
 - [ ] T168 執行完整測試套件確認無迴歸
 - [ ] T169 執行所有 ONNX 匯出測試驗證無 Loop/If 節點
 - [ ] T170 執行 quickstart.md 範例驗證
 - [ ] T171 效能基準測試：驗證 SC-001（達完整幾何積 50%+）
+- [ ] T172 效能比較測試：Similitude vs EvenVersor 加速效果（SC-001a 30-50% 更快）
 
 ---
 
@@ -514,7 +542,7 @@ fast_clifford/
 
 ### User Story Dependencies
 
-- **US1 (Motor Composition)**: 可於 Phase 2 後立即開始
+- **US1 (EvenVersor Composition)**: 可於 Phase 2 後立即開始
 - **US2 (Inner Product)**: 可於 Phase 2 後立即開始，與 US1 獨立
 - **US3 (Exponential Map)**: 可於 Phase 2 後開始，與 US1/US2 獨立
 - **US4 (Runtime Core)**: 可於 Phase 2 後開始，但建議在 US1-3 之後（可參考硬編碼實作）
@@ -537,13 +565,13 @@ fast_clifford/
 
 - Phase 1: T001-T004f 全部可平行
 - Phase 2: T005-T011 依序（有依賴）
-- Phase 3: T012-T018 測試可平行，T019-T024 生成可平行
-- Phase 4: T028-T035 測試可平行，T036-T041 更新可平行
-- Phase 5: T045-T052 測試可平行，T053-T058 更新可平行
+- Phase 3: T012-T018c 測試可平行，T019-T024 生成可平行
+- Phase 4: T028-T035a 測試可平行，T036-T041 更新可平行
+- Phase 5: T045-T052a 測試可平行，T053-T058 更新可平行
 - Phase 6: T062-T067 測試可平行
 - Phase 7-11: 各 Phase 測試和實作可平行
-- Phase 12: T119-T129 測試可平行，T130-T139 實作可平行
-- Phase 13: T141-T146 測試可平行，T147-T156 更新可平行
+- Phase 12: T119-T129i 測試可平行，T130-T140 實作可平行
+- Phase 13: T141-T146 測試可平行，T147-T157 更新可平行
 
 ---
 
@@ -551,13 +579,13 @@ fast_clifford/
 
 ```bash
 # 平行執行所有 US1 測試建立：
-Task: "T012 [P] [US1] 建立 test_motor_compose.py 測試框架"
+Task: "T012 [P] [US1] 建立 test_compose.py 測試框架"
 Task: "T013 [P] [US1] 新增單位元測試"
 Task: "T014 [P] [US1] 新增結合律測試"
 ...
 
 # 平行執行所有維度的 functional.py 重新生成：
-Task: "T019 [US1] 重新生成 cga0d/functional.py"
+Task: "T019 [US1] 重新生成 cga0d/functional.py 加入 compose_even_versor, compose_similitude"
 Task: "T020 [US1] 重新生成 cga1d/functional.py"
 Task: "T021 [US1] 重新生成 cga2d/functional.py"
 ...
@@ -572,14 +600,14 @@ Task: "T021 [US1] 重新生成 cga2d/functional.py"
 1. 完成 Phase 1: Setup (T001-T004f)
 2. 完成 Phase 2: Foundational (T005-T011)
 3. 完成 Phase 3: User Story 1 (T012-T027)
-4. **驗證**: 測試 motor_compose 功能
+4. **驗證**: 測試 compose（EvenVersor 和 Similitude）功能
 5. 可部署 MVP
 
 ### Incremental Delivery
 
 **核心操作 (P1-P2)**:
 1. Setup + Foundational → codegen 準備完成
-2. 加入 US1 (Motor Composition) → 測試 → 交付
+2. 加入 US1 (EvenVersor/Similitude Composition) → 測試 → 交付
 3. 加入 US2 (Inner Product) → 測試 → 交付
 4. 加入 US3 (Exponential Map) → 測試 → 交付
 5. 加入 US4 (Runtime Core) → 測試 → 交付
@@ -607,3 +635,6 @@ Task: "T021 [US1] 重新生成 cga2d/functional.py"
 - 測試失敗後再實作
 - 每個任務或邏輯群組後提交 Git
 - 任何 Checkpoint 可停下驗證
+- **新命名**：Motor → EvenVersor，新增 Similitude（CGA 專用加速）
+- **統一 API**：`compose()`, `sandwich_product()`, `reverse()` 自動路由到最佳實作
+- **Layer 命名**：使用 `CliffordTransformLayer`（非 CGA 專用名稱）

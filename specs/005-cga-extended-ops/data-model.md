@@ -222,3 +222,80 @@ Bivector → Motor
 1. **零元**: `exp_bivector(0) == (1, 0, 0, ...)`
 2. **小角度穩定性**: θ < 1e-10 時無 NaN/Inf
 3. **逆運算**: `motor_compose(exp(B), exp(-B)) ≈ identity`
+
+---
+
+## 統一 Layer 類別
+
+### 命名對照表
+
+| 移除的舊名稱 | 統一名稱 | 說明 |
+|--------------|----------|------|
+| `CGA{n}DCareLayer` | `CGATransformLayer` | Motor sandwich product 變換層 |
+| `RuntimeCGACareLayer` | `CGATransformLayer` | 運行時變換層 (n≥6) |
+| `UPGC{n}DEncoder` | `CGAEncoder` | 歐氏座標 → CGA 點 |
+| `UPGC{n}DDecoder` | `CGADecoder` | CGA 點 → 歐氏座標 |
+| `CGA{n}DTransformPipeline` | `CGAPipeline` | 完整變換管線 |
+| `get_care_layer()` | `get_transform_layer()` | 取得變換層的工廠方法 |
+
+**注意**: 舊名稱將完全移除，不提供向後相容別名。
+
+### CGATransformLayer
+
+```python
+class CGATransformLayer(nn.Module):
+    """
+    統一的 CGA 變換層，執行 Motor sandwich product。
+
+    Attributes:
+        dim: 歐氏維度 (0-5 硬編碼, 6+ 運行時)
+        motor_count: 馬達分量數
+        point_count: 點分量數
+    """
+    def __init__(self, dim: int): ...
+    def forward(self, motor: Tensor, point: Tensor) -> Tensor: ...
+```
+
+### CGAEncoder / CGADecoder
+
+```python
+class CGAEncoder(nn.Module):
+    """
+    統一的 UPGC 編碼器。
+
+    Args:
+        dim: 歐氏維度
+
+    Input: (..., dim) 歐氏座標
+    Output: (..., point_count) CGA 點表示
+    """
+    def forward(self, x: Tensor) -> Tensor: ...
+
+class CGADecoder(nn.Module):
+    """
+    統一的 UPGC 解碼器。
+
+    Input: (..., point_count) CGA 點表示
+    Output: (..., dim) 歐氏座標
+    """
+    def forward(self, p: Tensor) -> Tensor: ...
+```
+
+### CGAPipeline
+
+```python
+class CGAPipeline(nn.Module):
+    """
+    統一的變換管線：Encoder → Transform → Decoder。
+
+    Args:
+        dim: 歐氏維度
+
+    Input:
+        motor: (..., motor_count)
+        x: (..., dim) 歐氏座標
+    Output: (..., dim) 變換後的歐氏座標
+    """
+    def forward(self, motor: Tensor, x: Tensor) -> Tensor: ...
+```
+

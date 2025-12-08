@@ -154,3 +154,84 @@ def exp_bivector_4d(B: Tensor) -> Tensor:
 def exp_bivector_5d(B: Tensor) -> Tensor:
     """CGA5D exp map. B: (..., 21) -> Motor: (..., 64)"""
     ...
+
+
+# Unified Layer classes
+
+class CGATransformLayer:
+    """
+    統一的 CGA 變換層，執行 Motor sandwich product。
+
+    取代各維度的 CGA{n}DCareLayer。
+    """
+    dim: int
+    motor_count: int
+    point_count: int
+
+    def __init__(self, dim: int) -> None: ...
+    def forward(self, motor: Tensor, point: Tensor) -> Tensor: ...
+    def __call__(self, motor: Tensor, point: Tensor) -> Tensor: ...
+
+
+class CGAEncoder:
+    """
+    統一的 UPGC 編碼器。
+
+    取代各維度的 UPGC{n}DEncoder。
+    """
+    dim: int
+
+    def __init__(self, dim: int) -> None: ...
+    def forward(self, x: Tensor) -> Tensor:
+        """
+        Args:
+            x: 歐氏座標, shape (..., dim)
+        Returns:
+            CGA 點表示, shape (..., point_count)
+        """
+        ...
+    def __call__(self, x: Tensor) -> Tensor: ...
+
+
+class CGADecoder:
+    """
+    統一的 UPGC 解碼器。
+
+    取代各維度的 UPGC{n}DDecoder。
+    """
+    dim: int
+
+    def __init__(self, dim: int) -> None: ...
+    def forward(self, p: Tensor) -> Tensor:
+        """
+        Args:
+            p: CGA 點表示, shape (..., point_count)
+        Returns:
+            歐氏座標, shape (..., dim)
+        """
+        ...
+    def __call__(self, p: Tensor) -> Tensor: ...
+
+
+class CGAPipeline:
+    """
+    統一的變換管線：Encoder → Transform → Decoder。
+
+    取代各維度的 CGA{n}DTransformPipeline。
+    """
+    dim: int
+    encoder: CGAEncoder
+    transform: CGATransformLayer
+    decoder: CGADecoder
+
+    def __init__(self, dim: int) -> None: ...
+    def forward(self, motor: Tensor, x: Tensor) -> Tensor:
+        """
+        Args:
+            motor: 馬達, shape (..., motor_count)
+            x: 歐氏座標, shape (..., dim)
+        Returns:
+            變換後的歐氏座標, shape (..., dim)
+        """
+        ...
+    def __call__(self, motor: Tensor, x: Tensor) -> Tensor: ...

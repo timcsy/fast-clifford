@@ -71,6 +71,25 @@
 
 ---
 
+### User Story 5 - Unified Layer Naming (Priority: P2)
+
+開發者需要一致的 Layer 命名，不論維度都使用相同的類別名稱。移除 CARE 論文特定的命名（如 `CGA3DCareLayer`），改為通用的統一名稱。
+
+**Why this priority**: 當前命名過於強調 CARE 論文，但這是通用的幾何代數運算。統一命名提升 API 一致性和可讀性。
+
+**Independent Test**: 可透過 `from fast_clifford import CGATransformLayer` 驗證統一名稱可用。
+
+**Acceptance Scenarios**:
+
+1. **Given** 任意維度 n=0-5，**When** 使用 `cga.get_transform_layer()`，**Then** 返回對應維度的 `CGATransformLayer` 實例
+2. **Given** 運行時代數 n≥6，**When** 使用 `cga.get_transform_layer()`，**Then** 返回統一的 `CGATransformLayer` 實例
+3. **Given** 任意維度，**When** 從 `fast_clifford` 匯入 `CGATransformLayer`，**Then** 可直接使用
+4. **Given** 任意維度，**When** 使用 `CGAEncoder` 編碼歐氏座標，**Then** 返回正確形狀的 CGA 點表示
+5. **Given** 任意維度，**When** 使用 `CGADecoder` 解碼 CGA 點，**Then** 返回正確形狀的歐氏座標
+6. **Given** 任意維度，**When** 使用 `CGAPipeline` 執行完整變換，**Then** 輸入輸出維度一致且變換正確
+
+---
+
 ### Edge Cases
 
 - **零向量輸入**: inner_product(0, 0) 應返回 0，exp_bivector(0) 應返回單位馬達
@@ -120,12 +139,25 @@
 - **FR-018**: 所有操作 MUST 支援 PyTorch autograd（可微分）
 - **FR-019**: 所有操作 MUST 支援任意 batch 維度
 
+#### Layer 統一命名
+
+- **FR-020**: 系統 MUST 提供統一的 `CGATransformLayer` 類別，取代各維度的 `CGA{n}DCareLayer`
+- **FR-021**: 系統 MUST 提供統一的 `CGAEncoder` 和 `CGADecoder` 類別，取代 `UPGC{n}DEncoder/Decoder`
+- **FR-022**: 系統 MUST 提供統一的 `CGAPipeline` 類別，取代 `CGA{n}DTransformPipeline`
+- **FR-023**: CGAAlgebraBase MUST 提供 `get_transform_layer()` 方法，取代 `get_care_layer()`
+- **FR-024**: 統一命名 MUST 適用於所有維度（包含運行時 n≥6）
+- **FR-025**: 舊的維度特定 Layer 類別 MUST 移除（不向後相容）
+
 ### Key Entities
 
 - **Motor**: 偶數 Grade 多向量 (Grade 0 + Grade 2 + Grade 4 + ...)，用於表示剛體變換
 - **Bivector**: Grade 2 多向量，用於表示旋轉軸/平面
 - **Multivector**: 完整 Clifford 代數元素，包含所有 Grade 分量
 - **Metric Signature**: CGA 度規 (+,+,...,+,-)，定義內積的符號規則
+- **CGATransformLayer**: 統一的 PyTorch Layer，執行 Motor sandwich product 變換
+- **CGAEncoder**: 統一的 UPGC 編碼器，將歐氏座標轉換為 CGA 點表示
+- **CGADecoder**: 統一的 UPGC 解碼器，將 CGA 點表示轉換回歐氏座標
+- **CGAPipeline**: 統一的變換管線，組合 Encoder → Transform → Decoder
 
 ## Success Criteria *(mandatory)*
 
@@ -137,6 +169,8 @@
 - **SC-004**: 所有硬編碼實作可匯出為 ONNX 模型，且無 Loop 或 If 節點
 - **SC-005**: 測試覆蓋率達到 90% 以上，包含邊界情況和數值穩定性測試
 - **SC-006**: API 使用方式與現有 sandwich_product_sparse 一致，學習成本低
+- **SC-007**: 統一 Layer 命名後，所有維度使用相同類別名稱（CGATransformLayer 等）
+- **SC-008**: 舊的維度特定 Layer 類別完全移除
 
 ## Assumptions
 

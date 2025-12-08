@@ -9,8 +9,9 @@
 1. **Motor Composition** (`motor_compose`): 組合兩個馬達的幾何積
 2. **Geometric Inner Product** (`inner_product`): 計算多向量的度規內積（Grade 0 分量）
 3. **Exponential Map** (`exp_bivector`): 從 Bivector 生成馬達
+4. **Unified Layer Naming**: 統一 PyTorch Layer 命名，移除 CARE 特定名稱
 
-**技術策略**：n=0-5 使用 codegen 自動生成硬編碼實作（無迴圈，ONNX 相容），n≥6 使用運行時一般化算法。
+**技術策略**：n=0-5 使用 codegen 自動生成硬編碼實作（無迴圈，ONNX 相容），n≥6 使用運行時一般化算法。Layer 命名跨所有維度統一。
 
 ## Technical Context
 
@@ -57,25 +58,29 @@ specs/005-cga-extended-ops/
 
 ```text
 fast_clifford/
-├── __init__.py                    # 匯出新操作
+├── __init__.py                    # 匯出新操作與統一 Layer
 ├── cga/
-│   ├── base.py                    # 新增 motor_compose, inner_product, exp_bivector 抽象方法
+│   ├── base.py                    # 新增 motor_compose, inner_product, exp_bivector, get_transform_layer 抽象方法
 │   ├── registry.py                # HardcodedCGAWrapper 實作
-│   └── runtime.py                 # RuntimeCGAAlgebra 實作
+│   ├── runtime.py                 # RuntimeCGAAlgebra 實作
+│   └── layers.py                  # 新增：統一 Layer 類別定義 (CGATransformLayer, CGAEncoder, etc.)
 ├── codegen/
 │   ├── generate.py                # 新增 _generate_motor_compose_sparse, etc.
 │   └── sparse_analysis.py         # 新增稀疏性分析函式
 ├── algebras/
-│   ├── cga0d/functional.py        # 重新生成，加入新操作
-│   ├── cga1d/functional.py
-│   ├── cga2d/functional.py
-│   ├── cga3d/functional.py
-│   ├── cga4d/functional.py
-│   └── cga5d/functional.py
+│   ├── cga0d/
+│   │   ├── functional.py          # 重新生成，加入新操作
+│   │   └── layers.py              # 移除舊類別，改為從 cga/layers.py 匯入
+│   ├── cga1d/layers.py
+│   ├── cga2d/layers.py
+│   ├── cga3d/layers.py
+│   ├── cga4d/layers.py
+│   └── cga5d/layers.py
 └── tests/
     ├── test_motor_compose.py      # Motor Composition 測試
     ├── test_inner_product.py      # Inner Product 測試
-    └── test_exp_bivector.py       # Exponential Map 測試
+    ├── test_exp_bivector.py       # Exponential Map 測試
+    └── test_unified_layers.py     # 統一 Layer 命名測試
 ```
 
 **Structure Decision**: 沿用現有專案結構，在 `cga/base.py` 新增抽象方法，各維度 `functional.py` 由 codegen 重新生成。

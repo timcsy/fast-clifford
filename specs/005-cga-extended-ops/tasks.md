@@ -69,6 +69,7 @@ fast_clifford/
 - [ ] T016 [P] [US1] 新增 clifford 庫對照測試 (n=0-5)
 - [ ] T017 [P] [US1] 新增批次維度測試
 - [ ] T018 [P] [US1] 新增 ONNX 匯出測試 (無 Loop/If 節點)
+- [ ] T018a [P] [US1] 新增 autograd 梯度傳播測試 (FR-018)
 
 ### Implementation for User Story 1
 
@@ -102,6 +103,7 @@ fast_clifford/
 - [ ] T033 [P] [US2] 新增零向量測試：`inner_product(0, 0) == 0`
 - [ ] T034 [P] [US2] 新增批次維度測試
 - [ ] T035 [P] [US2] 新增 ONNX 匯出測試
+- [ ] T035a [P] [US2] 新增 autograd 梯度傳播測試 (FR-018)
 
 ### Implementation for User Story 2
 
@@ -135,6 +137,7 @@ fast_clifford/
 - [ ] T050 [P] [US3] 新增 clifford 庫對照測試 (n=0-5)
 - [ ] T051 [P] [US3] 新增批次維度測試
 - [ ] T052 [P] [US3] 新增 ONNX 匯出測試
+- [ ] T052a [P] [US3] 新增 autograd 梯度傳播測試 (FR-018)
 
 ### Implementation for User Story 3
 
@@ -181,16 +184,58 @@ fast_clifford/
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 7: Layer 重新命名 (Refactor)
+
+**Purpose**: 統一 Layer 命名，移除 CARE 特定名稱（不向後相容）
+
+### 重新命名對照表
+
+| 移除 | 統一後 |
+|------|--------|
+| `CGA{n}DCareLayer` | `CGATransformLayer` |
+| `RuntimeCGACareLayer` | `CGATransformLayer` |
+| `UPGC{n}DEncoder` | `CGAEncoder` |
+| `UPGC{n}DDecoder` | `CGADecoder` |
+| `CGA{n}DTransformPipeline` | `CGAPipeline` |
+| `get_care_layer()` | `get_transform_layer()` |
+
+### Tests for User Story 5
+
+- [ ] T075 [P] [US5] 建立 fast_clifford/tests/test_unified_layers.py 測試框架
+- [ ] T076 [P] [US5] 新增 CGATransformLayer 實例化測試 (n=0-5)
+- [ ] T077 [P] [US5] 新增 CGAEncoder/CGADecoder 輸入輸出形狀測試
+- [ ] T078 [P] [US5] 新增 CGAPipeline 端對端測試
+- [ ] T079 [P] [US5] 新增 get_transform_layer() 方法測試
+- [ ] T080 [P] [US5] 新增運行時 (n≥6) 統一 Layer 測試
+
+### Implementation
+
+- [ ] T081 [P] [US5] 在 fast_clifford/cga/ 新增 layers.py 定義統一介面類別 `CGATransformLayer`, `CGAEncoder`, `CGADecoder`, `CGAPipeline`
+- [ ] T082 [P] [US5] 移除 fast_clifford/algebras/cga0d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T083 [P] [US5] 移除 fast_clifford/algebras/cga1d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T084 [P] [US5] 移除 fast_clifford/algebras/cga2d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T085 [P] [US5] 移除 fast_clifford/algebras/cga3d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T086 [P] [US5] 移除 fast_clifford/algebras/cga4d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T087 [P] [US5] 移除 fast_clifford/algebras/cga5d/layers.py 的舊類別，改為從 cga/layers.py 匯入
+- [ ] T088 [US5] 更新 fast_clifford/cga/runtime.py 移除 `RuntimeCGACareLayer`，改用統一 `CGATransformLayer`
+- [ ] T089 [US5] 更新 fast_clifford/cga/base.py 將 `get_care_layer()` 改為 `get_transform_layer()`（移除舊方法）
+- [ ] T090 [US5] 更新 fast_clifford/cga/registry.py 配合新命名
+- [ ] T091 [US5] 執行 US5 測試驗證 (T075-T080)
+
+**Checkpoint**: Layer 命名統一完成
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
 
 **Purpose**: 整合、匯出、文檔更新
 
-- [ ] T075 [P] 更新 fast_clifford/__init__.py 匯出新操作
-- [ ] T076 [P] 更新 README.md 新增 Extended Operations API 文檔
-- [ ] T077 執行完整測試套件確認無迴歸
-- [ ] T078 執行所有 ONNX 匯出測試驗證無 Loop/If 節點
-- [ ] T079 執行 quickstart.md 範例驗證
-- [ ] T080 效能基準測試：驗證 SC-001（達完整幾何積 50%+）
+- [ ] T092 [P] 更新 fast_clifford/__init__.py 匯出新操作和統一 Layer 類別
+- [ ] T093 [P] 更新 README.md 新增 Extended Operations API 文檔和新 Layer 命名
+- [ ] T094 執行完整測試套件確認無迴歸
+- [ ] T095 執行所有 ONNX 匯出測試驗證無 Loop/If 節點
+- [ ] T096 執行 quickstart.md 範例驗證
+- [ ] T097 效能基準測試：驗證 SC-001（達完整幾何積 50%+）
 
 ---
 

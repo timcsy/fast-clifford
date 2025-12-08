@@ -183,6 +183,38 @@ torch.onnx.export(
 print("Exported to motor_compose.onnx")
 ```
 
+## 統一 Layer 使用
+
+所有維度使用相同的 Layer 類別名稱：
+
+```python
+import torch
+from fast_clifford import CGA, CGATransformLayer, CGAEncoder, CGADecoder, CGAPipeline
+
+# 建立代數與統一 Layer
+cga = CGA(3)
+transform_layer = CGATransformLayer(dim=3)  # 統一名稱
+encoder = CGAEncoder(dim=3)
+decoder = CGADecoder(dim=3)
+pipeline = CGAPipeline(dim=3)
+
+# 或透過代數實例取得
+transform_layer = cga.get_transform_layer()  # 取代 get_care_layer()
+
+# 使用範例
+motor = torch.randn(1, cga.motor_count)
+x = torch.tensor([[1.0, 2.0, 3.0]])
+
+# 完整管線
+y = pipeline(motor, x)
+print(f"Transformed point: {y}")
+
+# 分步操作
+point = encoder(x)
+transformed_point = transform_layer(motor, point)
+result = decoder(transformed_point)
+```
+
 ## 驗證測試
 
 ```bash
@@ -190,4 +222,5 @@ print("Exported to motor_compose.onnx")
 uv run pytest fast_clifford/tests/test_motor_compose.py -v
 uv run pytest fast_clifford/tests/test_inner_product.py -v
 uv run pytest fast_clifford/tests/test_exp_bivector.py -v
+uv run pytest fast_clifford/tests/test_unified_layers.py -v
 ```

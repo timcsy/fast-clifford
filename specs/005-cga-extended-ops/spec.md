@@ -168,9 +168,14 @@
 5. **Given** 多向量 a 和標量 s，**When** 使用 `a * s` 或 `s * a`，**Then** 返回標量乘積
 6. **Given** 多向量 a，**When** 使用 `~a`，**Then** 返回反向（reverse）結果
 7. **Given** 多向量 a，**When** 使用 `-a`，**Then** 返回取負結果
-8. **Given** 多向量 a 和 b，**When** 使用 `a @ b`，**Then** 返回左縮併（left contraction）結果
-9. **Given** 可逆多向量 a 和 b，**When** 使用 `a / b`，**Then** 返回 `a * b^(-1)` 結果
-10. **Given** 可逆多向量 a，**When** 使用 `a.inverse()`，**Then** 返回逆元 `a^(-1)`
+8. **Given** 多向量 a 和 b，**When** 使用 `a << b`，**Then** 返回左縮併（left contraction）結果
+9. **Given** 多向量 a 和 b，**When** 使用 `a >> b`，**Then** 返回右縮併（right contraction）結果
+10. **Given** Motor m 和 Point/Multivector x，**When** 使用 `m @ x`，**Then** 返回三明治積 `m * x * ~m`
+11. **Given** 可逆多向量 a 和 b，**When** 使用 `a / b`，**Then** 返回 `a * b^(-1)` 結果
+12. **Given** 可逆多向量 a，**When** 使用 `a.inverse()`，**Then** 返回逆元 `a^(-1)`
+13. **Given** 多向量 a 和整數 n，**When** 使用 `a ** n`，**Then** 返回 a 的 n 次幾何積冪次
+14. **Given** 可逆多向量 a，**When** 使用 `a ** -1`，**Then** 返回逆元（等同 `a.inverse()`）
+15. **Given** Bivector B，**When** 使用 `B.exp()`，**Then** 返回指數映射馬達 `exp(B)`
 
 ---
 
@@ -262,46 +267,65 @@
 
 #### Operator Overloading
 
-- **FR-027**: 系統 MUST 提供 `Multivector` 包裝類別，封裝張量與代數實例
+- **FR-027**: 系統 MUST 提供 `Multivector` 包裝類別，封裝張量、代數實例和可選的類型標記 (`kind`)
 - **FR-028**: `Multivector` MUST 實作 `__mul__` 運算子，對應幾何積 `a * b`
 - **FR-029**: `Multivector` MUST 實作 `__xor__` 運算子，對應楔積 `a ^ b`
 - **FR-030**: `Multivector` MUST 實作 `__or__` 運算子，對應內積 `a | b`
-- **FR-031**: `Multivector` MUST 實作 `__matmul__` 運算子，對應左縮併 `a @ b`
-- **FR-032**: `Multivector` MUST 實作 `__add__` 和 `__sub__` 運算子，對應加減法
-- **FR-033**: `Multivector` MUST 實作 `__neg__` 運算子，對應取負 `-a`
-- **FR-034**: `Multivector` MUST 實作 `__invert__` 運算子，對應反向 `~a`
-- **FR-035**: `Multivector` MUST 實作 `__rmul__` 運算子，支援標量左乘 `s * a`
-- **FR-036**: `Multivector` MUST 實作 `__truediv__` 運算子，支援標量除法 `a / s` 和多向量除法 `a / b`
-- **FR-037**: `Multivector` MUST 實作 `inverse()` 方法，計算多向量逆元 `a^(-1) = ~a / (a * ~a)`
-- **FR-038**: 多向量除法 `a / b` MUST 等價於 `a * b.inverse()`
-- **FR-039**: 對於不可逆多向量（`a * ~a == 0`），`inverse()` SHOULD 拋出 `ValueError` 或返回 NaN
-- **FR-040**: 所有運算子 MUST 支援 PyTorch autograd（可微分）
-- **FR-041**: 所有運算子 MUST 支援任意 batch 維度
+- **FR-031**: `Multivector` MUST 實作 `__lshift__` 運算子，對應左縮併 `a << b`
+- **FR-032**: `Multivector` MUST 實作 `__rshift__` 運算子，對應右縮併 `a >> b`
+- **FR-033**: `Multivector` MUST 實作 `__matmul__` 運算子，對應三明治積 `m @ x` = `m * x * ~m`
+- **FR-034**: `Multivector` MUST 實作 `__add__` 和 `__sub__` 運算子，對應加減法
+- **FR-035**: `Multivector` MUST 實作 `__neg__` 運算子，對應取負 `-a`
+- **FR-036**: `Multivector` MUST 實作 `__invert__` 運算子，對應反向 `~a`
+- **FR-037**: `Multivector` MUST 實作 `__rmul__` 運算子，支援標量左乘 `s * a`
+- **FR-038**: `Multivector` MUST 實作 `__truediv__` 運算子，支援標量除法 `a / s` 和多向量除法 `a / b`
+- **FR-039**: `Multivector` MUST 實作 `__pow__` 運算子，支援整數冪次 `a ** n` 和逆元 `a ** -1`
+- **FR-040**: `Multivector` MUST 實作 `inverse()` 方法，計算多向量逆元 `a^(-1) = ~a / (a * ~a)`
+- **FR-041**: `Multivector` MUST 實作 `exp()` 方法，對 Bivector 計算指數映射
+- **FR-042**: 多向量除法 `a / b` MUST 等價於 `a * b.inverse()`
+- **FR-043**: 對於不可逆多向量（`a * ~a == 0`），`inverse()` SHOULD 拋出 `ValueError` 或返回 NaN
+- **FR-044**: 所有運算子 MUST 支援 PyTorch autograd（可微分）
+- **FR-045**: 所有運算子 MUST 支援任意 batch 維度
+
+#### 類型標記與靜態路由
+
+- **FR-046**: `Multivector` MUST 支援 `kind` 屬性，可選值為 `None`、`'motor'`、`'point'`、`'bivector'` 等
+- **FR-047**: CGAAlgebraBase MUST 提供 `motor(tensor)`、`point(tensor)`、`bivector(tensor)` 工廠方法，建立帶類型標記的 Multivector
+- **FR-048**: 當 `kind='motor'` 的兩個多向量相乘時，SHOULD 靜態路由到 `motor_compose_sparse` 以優化效能
+- **FR-049**: 當 `kind='motor'` 對 `kind='point'` 執行三明治積 (`@`) 時，SHOULD 靜態路由到 `sandwich_product_sparse`
+- **FR-050**: 靜態路由 MUST 在 Python 圖構建時決定（非運行時），確保 ONNX 匯出無 If 節點
+- **FR-051**: 未標記類型 (`kind=None`) 的多向量 MUST 使用 full 版本函式（保證正確性）
+
+#### ONNX 相容性策略
+
+- **FR-052**: Multivector 運算子 SHOULD 優先使用 full 版本函式，確保 ONNX 相容
+- **FR-053**: 生產環境和 ONNX 匯出 SHOULD 直接使用 functional API（如 `motor_compose_sparse`）而非 Multivector 類別
+- **FR-054**: 文檔 MUST 清楚說明：運算子適合原型開發，functional API 適合生產部署
 
 #### 統一介面
 
-- **FR-042**: 所有新函式 MUST 加入 CGAAlgebraBase 抽象類別
-- **FR-043**: HardcodedCGAWrapper MUST 對 n=0-5 委派至硬編碼實作
-- **FR-044**: RuntimeCGAAlgebra MUST 對 n≥6 提供一般化實作
+- **FR-055**: 所有新函式 MUST 加入 CGAAlgebraBase 抽象類別
+- **FR-056**: HardcodedCGAWrapper MUST 對 n=0-5 委派至硬編碼實作
+- **FR-057**: RuntimeCGAAlgebra MUST 對 n≥6 提供一般化實作
 
-#### ONNX 相容性
+#### ONNX 相容性（硬編碼實作）
 
-- **FR-045**: 所有硬編碼實作 MUST 可匯出為無 Loop/If 節點的 ONNX 模型
-- **FR-046**: 運行時實作 SHOULD 盡可能支援 ONNX 匯出
+- **FR-058**: 所有硬編碼實作 MUST 可匯出為無 Loop/If 節點的 ONNX 模型
+- **FR-059**: 運行時實作 SHOULD 盡可能支援 ONNX 匯出
 
 #### PyTorch 整合
 
-- **FR-047**: 所有操作 MUST 支援 PyTorch autograd（可微分）
-- **FR-048**: 所有操作 MUST 支援任意 batch 維度
+- **FR-060**: 所有操作 MUST 支援 PyTorch autograd（可微分）
+- **FR-061**: 所有操作 MUST 支援任意 batch 維度
 
 #### Layer 統一命名
 
-- **FR-049**: 系統 MUST 提供統一的 `CGATransformLayer` 類別，取代各維度的 `CGA{n}DCareLayer`
-- **FR-050**: 系統 MUST 提供統一的 `CGAEncoder` 和 `CGADecoder` 類別，取代 `UPGC{n}DEncoder/Decoder`
-- **FR-051**: 系統 MUST 提供統一的 `CGAPipeline` 類別，取代 `CGA{n}DTransformPipeline`
-- **FR-052**: CGAAlgebraBase MUST 提供 `get_transform_layer()` 方法，取代 `get_care_layer()`
-- **FR-053**: 統一命名 MUST 適用於所有維度（包含運行時 n≥6）
-- **FR-054**: 舊的維度特定 Layer 類別 MUST 移除（不向後相容）
+- **FR-062**: 系統 MUST 提供統一的 `CGATransformLayer` 類別，取代各維度的 `CGA{n}DCareLayer`
+- **FR-063**: 系統 MUST 提供統一的 `CGAEncoder` 和 `CGADecoder` 類別，取代 `UPGC{n}DEncoder/Decoder`
+- **FR-064**: 系統 MUST 提供統一的 `CGAPipeline` 類別，取代 `CGA{n}DTransformPipeline`
+- **FR-065**: CGAAlgebraBase MUST 提供 `get_transform_layer()` 方法，取代 `get_care_layer()`
+- **FR-066**: 統一命名 MUST 適用於所有維度（包含運行時 n≥6）
+- **FR-067**: 舊的維度特定 Layer 類別 MUST 移除（不向後相容）
 
 ### Key Entities
 
@@ -331,9 +355,16 @@
 - **SC-011**: 運算子重載 `a * b` 與 `geometric_product(a, b)` 數值等價
 - **SC-012**: 運算子重載 `a ^ b` 與 `outer_product(a, b)` 數值等價
 - **SC-013**: 運算子重載 `a | b` 與 `inner_product(a, b)` 數值等價
-- **SC-014**: 運算子使用符合 Python 慣例（`*` 乘法、`^` 楔積、`|` 內積、`@` 縮併、`/` 除法）
+- **SC-014**: 運算子使用符合幾何代數慣例（`*` 幾何積、`^` 楔積、`|` 內積、`<<` `>>` 縮併、`@` 三明治積、`/` 除法、`**` 冪次）
 - **SC-015**: `a * a.inverse()` 對可逆多向量返回近似標量 1
 - **SC-016**: `a / b` 等價於 `a * b.inverse()`
+- **SC-017**: `m @ x` 對 Motor m 和 Point x，等價於 `sandwich_product(m, x)`
+- **SC-018**: `a << b` 與 `left_contraction(a, b)` 數值等價
+- **SC-019**: `a >> b` 與 `right_contraction(a, b)` 數值等價
+- **SC-020**: `a ** n` 對整數 n 返回 n 次幾何積冪次
+- **SC-021**: `B.exp()` 對 Bivector B 與 `exp_bivector(B)` 數值等價
+- **SC-022**: 帶類型標記的 Motor 相乘自動路由到 `motor_compose_sparse`（效能優化）
+- **SC-023**: 未標記類型的 Multivector 使用 full 版本保證正確性
 
 ## Assumptions
 

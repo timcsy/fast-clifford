@@ -343,7 +343,9 @@ fast_clifford/
 | `a * b` | `__mul__` | 幾何積 (geometric product) |
 | `a ^ b` | `__xor__` | 楔積 (outer product) |
 | `a \| b` | `__or__` | 內積 (inner product) |
-| `a @ b` | `__matmul__` | 左縮併 (left contraction) |
+| `a << b` | `__lshift__` | 左縮併 (left contraction) |
+| `a >> b` | `__rshift__` | 右縮併 (right contraction) |
+| `m @ x` | `__matmul__` | 三明治積 (sandwich product): `m * x * ~m` |
 | `a + b` | `__add__` | 加法 |
 | `a - b` | `__sub__` | 減法 |
 | `-a` | `__neg__` | 取負 |
@@ -352,7 +354,21 @@ fast_clifford/
 | `s * a` | `__rmul__` | 標量左乘 |
 | `a / s` | `__truediv__` | 標量除法 |
 | `a / b` | `__truediv__` | 多向量除法 (`a * b.inverse()`) |
+| `a ** n` | `__pow__` | 整數冪次 (n 次幾何積) |
+| `a ** -1` | `__pow__` | 逆元 (等同 `a.inverse()`) |
 | `a.inverse()` | `inverse()` | 多向量逆元 (`~a / (a * ~a)`) |
+| `B.exp()` | `exp()` | 指數映射 (Bivector → Motor) |
+
+### Type-Based Static Routing (ONNX-Safe)
+
+| 類型組合 | 路由目標 | 說明 |
+|----------|----------|------|
+| `motor * motor` | `motor_compose_sparse` | Motor × Motor → Motor |
+| `motor @ point` | `sandwich_product_sparse` | Motor sandwich Point → Point |
+| `motor @ bivector` | `sandwich_product_sparse` | Motor sandwich Bivector → Bivector |
+| `未標記 * 未標記` | `geometric_product_full` | 通用幾何積（保證正確） |
+
+**Note**: 靜態路由在 Python 圖構建時決定，確保 ONNX 匯出無 If 節點。
 
 ### Tests for User Story 10
 
@@ -360,32 +376,44 @@ fast_clifford/
 - [ ] T120 [P] [US10] 新增幾何積運算子測試：`a * b == geometric_product(a, b)`
 - [ ] T121 [P] [US10] 新增楔積運算子測試：`a ^ b == outer_product(a, b)`
 - [ ] T122 [P] [US10] 新增內積運算子測試：`a | b == inner_product(a, b)`
-- [ ] T123 [P] [US10] 新增左縮併運算子測試：`a @ b == left_contraction(a, b)`
+- [ ] T123 [P] [US10] 新增左縮併運算子測試：`a << b == left_contraction(a, b)`
+- [ ] T123a [P] [US10] 新增右縮併運算子測試：`a >> b == right_contraction(a, b)`
+- [ ] T123b [P] [US10] 新增三明治積運算子測試：`m @ x == sandwich_product(m, x)`
 - [ ] T124 [P] [US10] 新增加減法運算子測試
 - [ ] T125 [P] [US10] 新增取負運算子測試：`-a`
 - [ ] T126 [P] [US10] 新增反向運算子測試：`~a == reverse(a)`
 - [ ] T127 [P] [US10] 新增標量乘除法測試：`a * s`, `s * a`, `a / s`
+- [ ] T127a [P] [US10] 新增冪次運算子測試：`a ** 2 == a * a`, `a ** 3 == a * a * a`
+- [ ] T127b [P] [US10] 新增逆元冪次測試：`a ** -1 == a.inverse()`
+- [ ] T127c [P] [US10] 新增 exp() 方法測試：`B.exp() == exp_bivector(B.data)`
 - [ ] T128 [P] [US10] 新增批次維度測試
 - [ ] T129 [P] [US10] 新增 autograd 梯度傳播測試
 - [ ] T129a [P] [US10] 新增多向量除法測試：`a / b == a * b.inverse()`
 - [ ] T129b [P] [US10] 新增逆元測試：`a * a.inverse() ≈ identity`
 - [ ] T129c [P] [US10] 新增不可逆多向量測試：`null_vector.inverse()` 應拋出例外或返回 NaN
 - [ ] T129d [P] [US10] 新增單位元逆元測試：`scalar(1).inverse() == scalar(1)`
+- [ ] T129e [P] [US10] 新增類型標記工廠方法測試：`cga.motor()`, `cga.point()`, `cga.bivector()`
+- [ ] T129f [P] [US10] 新增靜態路由測試：Motor × Motor 使用 sparse 版本
+- [ ] T129g [P] [US10] 新增靜態路由測試：Motor @ Point 使用 sparse 版本
 
 ### Implementation for User Story 10
 
-- [ ] T130 [US10] 在 fast_clifford/cga/ 新增 multivector.py 定義 `Multivector` 類別
-- [ ] T131 [US10] 實作 `Multivector.__mul__` 和 `__rmul__` (幾何積/標量乘)
+- [ ] T130 [US10] 在 fast_clifford/cga/ 新增 multivector.py 定義 `Multivector` 類別（含 `kind` 屬性）
+- [ ] T131 [US10] 實作 `Multivector.__mul__` 和 `__rmul__` (幾何積/標量乘，含 Motor×Motor 靜態路由)
 - [ ] T132 [US10] 實作 `Multivector.__xor__` (楔積)
 - [ ] T133 [US10] 實作 `Multivector.__or__` (內積)
-- [ ] T134 [US10] 實作 `Multivector.__matmul__` (左縮併)
+- [ ] T134 [US10] 實作 `Multivector.__lshift__` 和 `__rshift__` (左/右縮併)
+- [ ] T134a [US10] 實作 `Multivector.__matmul__` (三明治積，含 Motor@Point 靜態路由)
 - [ ] T135 [US10] 實作 `Multivector.__add__`, `__sub__`, `__neg__` (加減取負)
 - [ ] T136 [US10] 實作 `Multivector.__invert__` (反向)
 - [ ] T137 [US10] 實作 `Multivector.__truediv__` (標量除法和多向量除法)
 - [ ] T137a [US10] 實作 `Multivector.inverse()` 方法：`~a / (a * ~a)`
+- [ ] T137b [US10] 實作 `Multivector.__pow__` (整數冪次和 ** -1 逆元)
+- [ ] T137c [US10] 實作 `Multivector.exp()` 方法 (Bivector 指數映射)
 - [ ] T138 [US10] 在 CGAAlgebraBase 新增 `multivector(tensor)` 工廠方法
+- [ ] T138a [US10] 在 CGAAlgebraBase 新增 `motor(tensor)`, `point(tensor)`, `bivector(tensor)` 工廠方法
 - [ ] T139 [US10] 更新 fast_clifford/__init__.py 匯出 `Multivector` 類別
-- [ ] T140 [US10] 執行 US10 測試驗證 (T119-T129d)
+- [ ] T140 [US10] 執行 US10 測試驗證 (T119-T129g)
 
 **Checkpoint**: Operator Overloading 功能完成
 

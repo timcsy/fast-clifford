@@ -253,9 +253,9 @@ CGA (專用，保形幾何代數)
 - **零向量正規化**: normalize(0) 應返回零向量而非 NaN
 - **無效 Grade**: grade_select 對超出範圍的 Grade 應返回零向量
 - **自楔積**: outer_product(v, v) 對任意 v 應返回 0
-- **不可逆多向量**: inverse() 對 null vector 或零向量應拋出錯誤或返回 NaN
+- **不可逆多向量**: inverse() 對 null vector 或零向量 MUST 返回全 NaN 張量
 - **單位元逆元**: 標量 1 的逆元應為 1
-- **Similitude 邊界**: similitude_compose 對包含 transversion 成分的輸入應產生警告或錯誤
+- **Similitude 邊界**: similitude_compose 對包含 transversion 成分的輸入 MUST 拋出 `ValueError("Input contains transversion components")`
 
 ## Requirements *(mandatory)*
 
@@ -338,6 +338,15 @@ CGA (專用，保形幾何代數)
 - **FR-025**: 對於零向量輸入，MUST 返回零向量（不會產生 NaN）
 - **FR-026**: 正規化 MUST 使用幾何內積計算範數
 
+#### Structure Normalize (Similitude 專用)
+
+- **FR-026a**: 系統 MUST 提供 `structure_normalize(similitude)` 函式，對 Similitude 進行結構正規化
+- **FR-026b**: 結構正規化 MUST 包含 Rotor 正規化（保持旋轉為單位四元數）
+- **FR-026c**: 結構正規化 MUST 強制 Similitude 約束 `ei+ = ei-`（排除 transversion）
+- **FR-026d**: 結構正規化 SHOULD 為 ONNX 相容（無迴圈、無條件分支）
+- **FR-026e**: 系統 SHOULD 提供 `soft_structure_normalize(similitude, strength)` 軟性正規化變體
+- **FR-026f**: 系統 SHOULD 提供 `structure_normalize_ste(similitude)` STE 變體（梯度穿透）
+
 #### Operator Overloading
 
 - **FR-027**: 系統 MUST 提供 `Multivector` 包裝類別，封裝張量、代數實例和可選的類型標記 (`kind`)
@@ -356,7 +365,7 @@ CGA (專用，保形幾何代數)
 - **FR-040**: `Multivector` MUST 實作 `inverse()` 方法，計算多向量逆元 `a^(-1) = ~a / (a * ~a)`
 - **FR-041**: `Multivector` MUST 實作 `exp()` 方法，對 Bivector 計算指數映射
 - **FR-042**: 多向量除法 `a / b` MUST 等價於 `a * b.inverse()`
-- **FR-043**: 對於不可逆多向量（`a * ~a == 0`），`inverse()` SHOULD 拋出 `ValueError` 或返回 NaN
+- **FR-043**: 對於不可逆多向量（`a * ~a == 0`），`inverse()` MUST 返回全 NaN 張量（ONNX 相容，避免控制流）
 - **FR-044**: 所有運算子 MUST 支援 PyTorch autograd（可微分）
 - **FR-045**: 所有運算子 MUST 支援任意 batch 維度
 
@@ -515,7 +524,7 @@ EvenVersor (通用 Clifford Algebra):
 Similitude (CGA 專用):
 ├── EvenVersor 的子集
 ├── 排除 transversion 相關分量
-├── CGA3D: 約 10-12 分量（比 EvenVersor 少）
+├── CGA3D: 11 分量（比 EvenVersor 的 16 少 31%）
 ├── 可表示: 旋轉、平移、縮放
 └── 更稀疏 → 更快計算（30-50% 提升）
 ```

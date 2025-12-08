@@ -10,7 +10,7 @@ Algebra properties:
 - Signature: (+, +, -)
 - Total blades: 8
 - UPGC Point: 3 components
-- Motor: 4 components
+- EvenVersor: 4 components
 """
 
 from .algebra import (
@@ -23,9 +23,9 @@ from .algebra import (
     GRADE_2_INDICES,
     GRADE_3_INDICES,
     UPGC_POINT_MASK,
-    MOTOR_MASK,
+    EVEN_VERSOR_MASK,
     REVERSE_SIGNS,
-    MOTOR_REVERSE_SIGNS,
+    EVEN_VERSOR_REVERSE_SIGNS,
     BLADE_NAMES,
     get_layout,
     get_blades,
@@ -44,18 +44,31 @@ from .functional import (
     reverse_full,
     upgc_encode,
     upgc_decode,
-    reverse_motor,
+    reverse_even_versor,
     sandwich_product_sparse,
+    # Extended operations
+    compose_even_versor,
+    compose_similitude,
+    sandwich_product_similitude,
+    inner_product_full,
+    outer_product_full,
+    left_contraction_full,
+    right_contraction_full,
+    grade_select,
+    dual,
+    normalize,
+    norm_squared,
+    exp_bivector,
+    bivector_squared_scalar,
+    structure_normalize,
+    soft_structure_normalize,
 )
 
-from .layers import (
-    CGA1DCareLayer,
-    UPGC1DEncoder,
-    UPGC1DDecoder,
-    CGA1DTransformPipeline,
-)
+from . import functional
 
 __all__ = [
+    # Module
+    "functional",
     # Constants
     "EUCLIDEAN_DIM",
     "BLADE_COUNT",
@@ -66,9 +79,9 @@ __all__ = [
     "GRADE_2_INDICES",
     "GRADE_3_INDICES",
     "UPGC_POINT_MASK",
-    "MOTOR_MASK",
+    "EVEN_VERSOR_MASK",
     "REVERSE_SIGNS",
-    "MOTOR_REVERSE_SIGNS",
+    "EVEN_VERSOR_REVERSE_SIGNS",
     "BLADE_NAMES",
     # Algebra functions
     "get_layout",
@@ -81,16 +94,27 @@ __all__ = [
     "get_blade_info",
     "up",
     "down",
-    # PyTorch operations
+    # Core operations
     "geometric_product_full",
     "reverse_full",
     "upgc_encode",
     "upgc_decode",
-    "reverse_motor",
+    "reverse_even_versor",
     "sandwich_product_sparse",
-    # PyTorch layers
-    "CGA1DCareLayer",
-    "UPGC1DEncoder",
-    "UPGC1DDecoder",
-    "CGA1DTransformPipeline",
+    # Extended operations
+    "compose_even_versor",
+    "compose_similitude",
+    "sandwich_product_similitude",
+    "inner_product_full",
+    "outer_product_full",
+    "left_contraction_full",
+    "right_contraction_full",
+    "grade_select",
+    "dual",
+    "normalize",
+    "norm_squared",
+    "exp_bivector",
+    "bivector_squared_scalar",
+    "structure_normalize",
+    "soft_structure_normalize",
 ]

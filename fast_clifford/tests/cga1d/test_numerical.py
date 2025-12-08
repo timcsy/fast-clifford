@@ -269,15 +269,15 @@ class TestUPGCEncoding:
 class TestSandwichProduct:
     """Test sparse sandwich product M × X × M̃."""
 
-    def test_identity_motor(self):
-        """Identity motor leaves point unchanged."""
-        motor = torch.zeros(4)
-        motor[0] = 1.0  # scalar = 1
+    def test_identity_ev(self):
+        """Identity EvenVersor leaves point unchanged."""
+        ev = torch.zeros(4)
+        ev[0] = 1.0  # scalar = 1
 
         x = torch.randn(1)
         point = cga1d.upgc_encode(x)
 
-        result = cga1d.sandwich_product_sparse(motor, point)
+        result = cga1d.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(point, result, atol=1e-6)
 
@@ -285,7 +285,7 @@ class TestSandwichProduct:
         """Translation by t works correctly."""
         layout, blades, stuff = reference_algebra
 
-        # Translation motor: T = 1 + 0.5 * t * einf * e1 (positive sign for forward translation)
+        # Translation EvenVersor: T = 1 + 0.5 * t * einf * e1 (positive sign for forward translation)
         e1 = blades['e1']
         einf = stuff['einf']
         up = stuff['up']
@@ -293,7 +293,7 @@ class TestSandwichProduct:
 
         t = 3.0  # translate by 3
 
-        # Create translation motor using clifford
+        # Create translation EvenVersor using clifford
         T = 1 + 0.5 * t * einf * e1
 
         # Get expected result from clifford first
@@ -304,19 +304,19 @@ class TestSandwichProduct:
         expected = torch.tensor([float(x_out_mv.value[1])], dtype=torch.float32)
 
         # Convert to sparse representation
-        # Motor layout: [scalar, e1+, e1-, e+-]
-        motor = torch.zeros(4, dtype=torch.float32)
-        motor[0] = float(T.value[0])   # scalar
-        motor[1] = float(T.value[4])   # e1e+ (index 4 in CGA1D)
-        motor[2] = float(T.value[5])   # e1e- (index 5 in CGA1D)
-        motor[3] = float(T.value[6])   # e+e- (index 6 in CGA1D)
+        # EvenVersor layout: [scalar, e1+, e1-, e+-]
+        ev = torch.zeros(4, dtype=torch.float32)
+        ev[0] = float(T.value[0])   # scalar
+        ev[1] = float(T.value[4])   # e1e+ (index 4 in CGA1D)
+        ev[2] = float(T.value[5])   # e1e- (index 5 in CGA1D)
+        ev[3] = float(T.value[6])   # e+e- (index 6 in CGA1D)
 
         # Create a point at x=2
         x = torch.tensor([2.0], dtype=torch.float32)
         point = cga1d.upgc_encode(x)
 
         # Transform
-        result = cga1d.sandwich_product_sparse(motor, point)
+        result = cga1d.sandwich_product_sparse(ev, point)
         decoded = cga1d.upgc_decode(result)
 
         assert torch.allclose(decoded, expected, atol=1e-5)
@@ -325,13 +325,13 @@ class TestSandwichProduct:
         """Batch sandwich product works correctly."""
         batch_size = 8
 
-        motor = torch.zeros(batch_size, 4)
-        motor[:, 0] = 1.0  # Identity motors
+        ev = torch.zeros(batch_size, 4)
+        ev[:, 0] = 1.0  # Identity EvenVersors
 
         x_batch = torch.randn(batch_size, 1)
         points = cga1d.upgc_encode(x_batch)
 
-        result = cga1d.sandwich_product_sparse(motor, points)
+        result = cga1d.sandwich_product_sparse(ev, points)
 
         assert result.shape == (batch_size, 3)
         assert torch.allclose(points, result, atol=1e-6)
@@ -361,30 +361,30 @@ class TestNullBasis:
 
 
 # =============================================================================
-# Motor Reverse Tests
+# EvenVersor Reverse Tests
 # =============================================================================
 
-class TestMotorReverse:
-    """Test motor-specific reverse operation."""
+class TestEvenVersorReverse:
+    """Test EvenVersor-specific reverse operation."""
 
-    def test_identity_motor_reverse(self):
-        """Identity motor reverse is identity."""
-        motor = torch.zeros(4)
-        motor[0] = 1.0
+    def test_identity_ev_reverse(self):
+        """Identity EvenVersor reverse is identity."""
+        ev = torch.zeros(4)
+        ev[0] = 1.0
 
-        result = cga1d.reverse_motor(motor)
+        result = cga1d.reverse_even_versor(ev)
 
         assert result[0].item() == pytest.approx(1.0)
         assert torch.allclose(result[1:], torch.zeros(3))
 
     def test_grade2_negated(self):
         """Grade 2 components are negated."""
-        motor = torch.zeros(4)
-        motor[1] = 1.0  # e1+ (Grade 2)
-        motor[2] = 2.0  # e1- (Grade 2)
-        motor[3] = 3.0  # e+- (Grade 2)
+        ev = torch.zeros(4)
+        ev[1] = 1.0  # e1+ (Grade 2)
+        ev[2] = 2.0  # e1- (Grade 2)
+        ev[3] = 3.0  # e+- (Grade 2)
 
-        result = cga1d.reverse_motor(motor)
+        result = cga1d.reverse_even_versor(ev)
 
         assert result[1].item() == pytest.approx(-1.0)
         assert result[2].item() == pytest.approx(-2.0)

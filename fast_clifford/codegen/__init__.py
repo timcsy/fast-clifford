@@ -5,9 +5,9 @@ This module provides tools for generating optimized PyTorch code
 from symbolic Clifford algebra definitions.
 
 Supports multiple CGA dimensions:
-- CGA1D Cl(2,1): 8 blades, 3 Point, 4 Motor
-- CGA2D Cl(3,1): 16 blades, 4 Point, 8 Motor
-- CGA3D Cl(4,1): 32 blades, 5 Point, 16 Motor
+- CGA1D Cl(2,1): 8 blades, 3 Point, 4 EvenVersor
+- CGA2D Cl(3,1): 16 blades, 4 Point, 8 EvenVersor
+- CGA3D Cl(4,1): 32 blades, 5 Point, 16 EvenVersor
 """
 
 from .base import AlgebraDefinition, CodeGenerator, SparsityPattern
@@ -18,13 +18,13 @@ from .cga_factory import (
     compute_reverse_signs,
     get_product_table,
     get_upgc_point_indices,
-    get_motor_indices,
+    get_even_versor_indices,
     get_blade_names,
     verify_null_basis_properties,
 )
 from .sparse_analysis import (
     get_upgc_point_pattern,
-    get_motor_pattern,
+    get_even_versor_pattern,
     get_sandwich_product_terms_generic,
     count_sandwich_product_ops,
 )
@@ -49,12 +49,12 @@ __all__ = [
     "compute_reverse_signs",
     "get_product_table",
     "get_upgc_point_indices",
-    "get_motor_indices",
+    "get_even_versor_indices",
     "get_blade_names",
     "verify_null_basis_properties",
     # Sparsity analysis
     "get_upgc_point_pattern",
-    "get_motor_pattern",
+    "get_even_versor_pattern",
     "get_sandwich_product_terms_generic",
     "count_sandwich_product_ops",
     # Code generators

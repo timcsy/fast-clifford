@@ -29,20 +29,20 @@ class TestONNXExport:
         layer = CGACareLayer()
 
         # Create example inputs
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "point"],
+                    input_names=["ev", "point"],
                     output_names=["output"],
                     dynamic_axes={
-                        "motor": {0: "batch_size"},
+                        "ev": {0: "batch_size"},
                         "point": {0: "batch_size"},
                         "output": {0: "batch_size"}
                     }
@@ -120,20 +120,20 @@ class TestONNXExport:
         """Test CGATransformPipeline exports to ONNX."""
         pipeline = CGATransformPipeline()
 
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "x"],
+                    input_names=["ev", "x"],
                     output_names=["y"],
                     dynamic_axes={
-                        "motor": {0: "batch_size"},
+                        "ev": {0: "batch_size"},
                         "x": {0: "batch_size"},
                         "y": {0: "batch_size"}
                     }
@@ -162,14 +162,14 @@ class TestONNXNoLoops:
     def test_cga_care_layer_no_loops(self):
         """Verify CGACareLayer has no Loop nodes."""
         layer = CGACareLayer()
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17
                 )
@@ -191,14 +191,14 @@ class TestONNXNoLoops:
     def test_full_pipeline_no_loops(self):
         """Verify CGATransformPipeline has no Loop nodes."""
         pipeline = CGATransformPipeline()
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17
                 )
@@ -249,14 +249,14 @@ class TestONNXBasicOperators:
     def test_cga_care_layer_basic_ops(self):
         """Verify CGACareLayer uses only basic operators."""
         layer = CGACareLayer()
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17
                 )
@@ -286,14 +286,14 @@ class TestONNXBasicOperators:
     def test_report_ops_used(self):
         """Report all ops used by the full pipeline."""
         pipeline = CGATransformPipeline()
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17
                 )
@@ -326,20 +326,20 @@ class TestONNXNumericalEquivalence:
         import numpy as np
 
         layer = CGACareLayer()
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         # PyTorch result
-        pytorch_result = layer(motor, point).detach().numpy()
+        pytorch_result = layer(ev, point).detach().numpy()
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "point"],
+                    input_names=["ev", "point"],
                     output_names=["output"]
                 )
 
@@ -350,7 +350,7 @@ class TestONNXNumericalEquivalence:
                 onnx_result = session.run(
                     None,
                     {
-                        "motor": motor.numpy(),
+                        "ev": ev.numpy(),
                         "point": point.numpy()
                     }
                 )[0]
@@ -369,20 +369,20 @@ class TestONNXNumericalEquivalence:
         import numpy as np
 
         pipeline = CGATransformPipeline()
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         # PyTorch result
-        pytorch_result = pipeline(motor, x).detach().numpy()
+        pytorch_result = pipeline(ev, x).detach().numpy()
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "x"],
+                    input_names=["ev", "x"],
                     output_names=["y"]
                 )
 
@@ -392,7 +392,7 @@ class TestONNXNumericalEquivalence:
                 onnx_result = session.run(
                     None,
                     {
-                        "motor": motor.numpy(),
+                        "ev": ev.numpy(),
                         "x": x.numpy()
                     }
                 )[0]

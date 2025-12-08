@@ -24,7 +24,7 @@ from fast_clifford.codegen.cga_factory import (
     compute_reverse_signs,
     get_product_table as factory_get_product_table,
     get_upgc_point_indices,
-    get_motor_indices,
+    get_even_versor_indices,
     get_blade_names,
     verify_null_basis_properties,
 )
@@ -64,13 +64,13 @@ GRADE_INDICES = (
 # Layout: [e1, e+, e-]
 UPGC_POINT_MASK = GRADE_1_INDICES
 
-# Motor: Grade 0, 2 (1 + 3 = 4 components)
+# EvenVersor: Grade 0, 2 (1 + 3 = 4 components)
 # Note: CGA1D has no Grade 4 (max grade is 3)
 # Layout: [scalar, e1+, e1-, e+-]
-MOTOR_MASK = get_motor_indices(EUCLIDEAN_DIM)
+EVEN_VERSOR_MASK = get_even_versor_indices(EUCLIDEAN_DIM)
 
-# Motor sparse indices (full index -> sparse index mapping)
-MOTOR_SPARSE_INDICES = MOTOR_MASK
+# EvenVersor sparse indices (full index -> sparse index mapping)
+EVEN_VERSOR_SPARSE_INDICES = EVEN_VERSOR_MASK
 
 
 # =============================================================================
@@ -87,9 +87,9 @@ REVERSE_SIGNS_BY_GRADE = {
 # Precomputed reverse signs for all 8 blades
 REVERSE_SIGNS = compute_reverse_signs(EUCLIDEAN_DIM)
 
-# Motor reverse signs (4 components)
+# EvenVersor reverse signs (4 components)
 # Grade 0 (+1), Grade 2 (-1 x 3)
-MOTOR_REVERSE_SIGNS = tuple(REVERSE_SIGNS[idx] for idx in MOTOR_SPARSE_INDICES)
+EVEN_VERSOR_REVERSE_SIGNS = tuple(REVERSE_SIGNS[idx] for idx in EVEN_VERSOR_SPARSE_INDICES)
 
 
 # =============================================================================
@@ -226,24 +226,24 @@ def get_blade_info() -> List[Dict]:
     return info
 
 
-def get_motor_sparse_index_map() -> Dict[int, int]:
+def get_even_versor_sparse_index_map() -> Dict[int, int]:
     """
-    Get mapping from full 8-index to sparse 4-index for motors.
+    Get mapping from full 8-index to sparse 4-index for EvenVersors.
 
     Returns:
         Dict mapping full_index -> sparse_index
     """
-    return {full: sparse for sparse, full in enumerate(MOTOR_SPARSE_INDICES)}
+    return {full: sparse for sparse, full in enumerate(EVEN_VERSOR_SPARSE_INDICES)}
 
 
-def get_motor_full_index_map() -> Dict[int, int]:
+def get_even_versor_full_index_map() -> Dict[int, int]:
     """
-    Get mapping from sparse 4-index to full 8-index for motors.
+    Get mapping from sparse 4-index to full 8-index for EvenVersors.
 
     Returns:
         Dict mapping sparse_index -> full_index
     """
-    return {sparse: full for sparse, full in enumerate(MOTOR_SPARSE_INDICES)}
+    return {sparse: full for sparse, full in enumerate(EVEN_VERSOR_SPARSE_INDICES)}
 
 
 def up(x_1d: np.ndarray) -> np.ndarray:
@@ -304,7 +304,7 @@ if __name__ == "__main__":
     print()
 
     print(f"UPGC Point mask: {UPGC_POINT_MASK} ({len(UPGC_POINT_MASK)} components)")
-    print(f"Motor mask: {MOTOR_MASK} ({len(MOTOR_MASK)} components)")
+    print(f"EvenVersor mask: {EVEN_VERSOR_MASK} ({len(EVEN_VERSOR_MASK)} components)")
     print()
 
     print("Blade info:")

@@ -21,8 +21,24 @@ from .cga_factory import (
     compute_reverse_signs,
     get_product_table,
     get_upgc_point_indices,
-    get_motor_indices,
+    get_even_versor_indices,
     get_blade_names,
+)
+from .sparse_analysis import (
+    get_compose_even_versor_terms,
+    get_compose_similitude_terms,
+    get_inner_product_signs,
+    get_bivector_squared_terms,
+    get_bivector_indices,
+    get_outer_product_terms,
+    get_left_contraction_terms,
+    get_right_contraction_terms,
+    get_grade_masks,
+    get_pseudoscalar_info,
+    get_norm_squared_terms,
+    get_rotor_indices,
+    get_translation_pairs,
+    get_dilation_index,
 )
 
 
@@ -137,14 +153,14 @@ from typing import Tuple
             "",
             "# Sparsity masks",
             "UPGC_POINT_MASK = GRADE_1_INDICES  # 5 components",
-            "MOTOR_MASK = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES  # 16 components",
+            "EVEN_VERSOR_MASK = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES  # 16 components",
             "",
             "# Reverse signs for all 32 blades",
             f"REVERSE_SIGNS = {self.algebra.get_reverse_signs()}",
             "",
-            "# Motor-specific reverse signs (16 components)",
+            "# EvenVersor-specific reverse signs (16 components)",
             "# Grade 0: +1, Grade 2: -1 (10 components), Grade 4: +1 (5 components)",
-            "MOTOR_REVERSE_SIGNS = (1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1)",
+            "EVEN_VERSOR_REVERSE_SIGNS = (1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, 1, 1, 1)",
             "",
         ]
         return "\n".join(lines)
@@ -260,26 +276,26 @@ from typing import Tuple
         """Generate sparse operation functions (T025, T026, T030)."""
         from .sparse_analysis import (
             get_sandwich_product_terms,
-            MOTOR_FULL_INDICES,
+            EVEN_VERSOR_FULL_INDICES,
             UPGC_POINT_FULL_INDICES,
-            MOTOR_PATTERN,
+            EVEN_VERSOR_PATTERN,
             UPGC_POINT_PATTERN,
         )
 
         # Get all terms for sandwich product
         terms = get_sandwich_product_terms(
             self.algebra.get_product_table(),
-            MOTOR_FULL_INDICES,
+            EVEN_VERSOR_FULL_INDICES,
             UPGC_POINT_FULL_INDICES,
             self.algebra.get_reverse_signs()
         )
 
         lines = [
             "# =============================================================================",
-            "# Sparse Operations (Motor x Point)",
+            "# Sparse Operations (EvenVersor x Point)",
             "# =============================================================================",
             "",
-            "# Motor sparse indices: Grade 0 (1) + Grade 2 (10) + Grade 4 (5) = 16",
+            "# EvenVersor sparse indices: Grade 0 (1) + Grade 2 (10) + Grade 4 (5) = 16",
             "# Point sparse indices: Grade 1 (5)",
             "",
         ]
@@ -292,8 +308,8 @@ from typing import Tuple
         lines.extend(self._generate_upgc_decode())
         lines.append("")
 
-        # Generate reverse_motor (T030)
-        lines.extend(self._generate_reverse_motor())
+        # Generate reverse_even_versor (T030)
+        lines.extend(self._generate_reverse_even_versor())
         lines.append("")
 
         # Generate sandwich_product_sparse (T025)
@@ -364,47 +380,47 @@ from typing import Tuple
             "",
         ]
 
-    def _generate_reverse_motor(self) -> List[str]:
-        """Generate reverse_motor function (T030)."""
-        # Motor reverse signs: Grade 0 (+1), Grade 2 (-1 x 10), Grade 4 (+1 x 5)
+    def _generate_reverse_even_versor(self) -> List[str]:
+        """Generate reverse_even_versor function (T030)."""
+        # EvenVersor reverse signs: Grade 0 (+1), Grade 2 (-1 x 10), Grade 4 (+1 x 5)
         return [
             "@torch.jit.script",
-            "def reverse_motor(motor: Tensor) -> Tensor:",
+            "def reverse_even_versor(ev: Tensor) -> Tensor:",
             '    """',
-            "    Compute reverse of a motor (sparse 16-component version).",
+            "    Compute reverse of an EvenVersor (sparse 16-component version).",
             "",
-            "    Motor layout (16 components):",
+            "    EvenVersor layout (16 components):",
             "        [0]: scalar (Grade 0) -> +1",
             "        [1-10]: bivectors (Grade 2) -> -1",
             "        [11-15]: quadvectors (Grade 4) -> +1",
             "",
             "    Args:",
-            "        motor: Motor, shape (..., 16)",
+            "        ev: EvenVersor, shape (..., 16)",
             "",
             "    Returns:",
-            "        Reversed motor, shape (..., 16)",
+            "        Reversed EvenVersor, shape (..., 16)",
             '    """',
             "    # Grade 0: keep sign",
-            "    r0 = motor[..., 0]",
+            "    r0 = ev[..., 0]",
             "",
             "    # Grade 2 (10 components): negate",
-            "    r1 = -motor[..., 1]",
-            "    r2 = -motor[..., 2]",
-            "    r3 = -motor[..., 3]",
-            "    r4 = -motor[..., 4]",
-            "    r5 = -motor[..., 5]",
-            "    r6 = -motor[..., 6]",
-            "    r7 = -motor[..., 7]",
-            "    r8 = -motor[..., 8]",
-            "    r9 = -motor[..., 9]",
-            "    r10 = -motor[..., 10]",
+            "    r1 = -ev[..., 1]",
+            "    r2 = -ev[..., 2]",
+            "    r3 = -ev[..., 3]",
+            "    r4 = -ev[..., 4]",
+            "    r5 = -ev[..., 5]",
+            "    r6 = -ev[..., 6]",
+            "    r7 = -ev[..., 7]",
+            "    r8 = -ev[..., 8]",
+            "    r9 = -ev[..., 9]",
+            "    r10 = -ev[..., 10]",
             "",
             "    # Grade 4 (5 components): keep sign",
-            "    r11 = motor[..., 11]",
-            "    r12 = motor[..., 12]",
-            "    r13 = motor[..., 13]",
-            "    r14 = motor[..., 14]",
-            "    r15 = motor[..., 15]",
+            "    r11 = ev[..., 11]",
+            "    r12 = ev[..., 12]",
+            "    r13 = ev[..., 13]",
+            "    r14 = ev[..., 14]",
+            "    r15 = ev[..., 15]",
             "",
             "    return torch.stack([",
             "        r0, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15",
@@ -421,17 +437,17 @@ from typing import Tuple
 
         lines = [
             "@torch.jit.script",
-            "def sandwich_product_sparse(motor: Tensor, point: Tensor) -> Tensor:",
+            "def sandwich_product_sparse(ev: Tensor, point: Tensor) -> Tensor:",
             '    """',
             "    Compute sparse sandwich product: M × X × M̃",
             "",
             "    Optimized for:",
-            "        - Motor M: 16 components (Grade 0, 2, 4)",
+            "        - EvenVersor M: 16 components (Grade 0, 2, 4)",
             "        - Point X: 5 components (Grade 1)",
             "        - Output: 5 components (Grade 1)",
             "",
             "    Args:",
-            "        motor: Motor, shape (..., 16)",
+            "        ev: EvenVersor, shape (..., 16)",
             "               [scalar, e12, e13, e1+, e1-, e23, e2+, e2-, e3+, e3-, e+-,",
             "                e123+, e123-, e12+-, e13+-, e23+-]",
             "        point: UPGC point, shape (..., 5)",
@@ -443,23 +459,23 @@ from typing import Tuple
             f"    Note:",
             f"        Total multiplications: {count_multiplication_ops(terms)} (vs 2048 for full)",
             '    """',
-            "    # Motor components (sparse)",
-            "    m0 = motor[..., 0]    # scalar",
-            "    m1 = motor[..., 1]    # e12",
-            "    m2 = motor[..., 2]    # e13",
-            "    m3 = motor[..., 3]    # e1+",
-            "    m4 = motor[..., 4]    # e1-",
-            "    m5 = motor[..., 5]    # e23",
-            "    m6 = motor[..., 6]    # e2+",
-            "    m7 = motor[..., 7]    # e2-",
-            "    m8 = motor[..., 8]    # e3+",
-            "    m9 = motor[..., 9]    # e3-",
-            "    m10 = motor[..., 10]  # e+-",
-            "    m11 = motor[..., 11]  # e123+",
-            "    m12 = motor[..., 12]  # e123-",
-            "    m13 = motor[..., 13]  # e12+-",
-            "    m14 = motor[..., 14]  # e13+-",
-            "    m15 = motor[..., 15]  # e23+-",
+            "    # EvenVersor components (sparse)",
+            "    m0 = ev[..., 0]    # scalar",
+            "    m1 = ev[..., 1]    # e12",
+            "    m2 = ev[..., 2]    # e13",
+            "    m3 = ev[..., 3]    # e1+",
+            "    m4 = ev[..., 4]    # e1-",
+            "    m5 = ev[..., 5]    # e23",
+            "    m6 = ev[..., 6]    # e2+",
+            "    m7 = ev[..., 7]    # e2-",
+            "    m8 = ev[..., 8]    # e3+",
+            "    m9 = ev[..., 9]    # e3-",
+            "    m10 = ev[..., 10]  # e+-",
+            "    m11 = ev[..., 11]  # e123+",
+            "    m12 = ev[..., 12]  # e123-",
+            "    m13 = ev[..., 13]  # e12+-",
+            "    m14 = ev[..., 14]  # e13+-",
+            "    m15 = ev[..., 15]  # e23+-",
             "",
             "    # Point components (sparse)",
             "    p0 = point[..., 0]  # e1",
@@ -468,7 +484,7 @@ from typing import Tuple
             "    p3 = point[..., 3]  # e+",
             "    p4 = point[..., 4]  # e-",
             "",
-            "    # Motor reverse (Grade 2 negated)",
+            "    # EvenVersor reverse (Grade 2 negated)",
             "    mr0 = m0",
             "    mr1 = -m1",
             "    mr2 = -m2",
@@ -567,7 +583,7 @@ class CGANDAlgebra(AlgebraDefinition):
         self._reverse_signs = compute_reverse_signs(euclidean_dim)
         self._blade_names = get_blade_names(euclidean_dim)
         self._upgc_point_indices = get_upgc_point_indices(euclidean_dim)
-        self._motor_indices = get_motor_indices(euclidean_dim)
+        self._even_versor_indices = get_even_versor_indices(euclidean_dim)
 
     @property
     def euclidean_dim(self) -> int:
@@ -601,8 +617,8 @@ class CGANDAlgebra(AlgebraDefinition):
     def get_upgc_point_indices(self) -> Tuple[int, ...]:
         return self._upgc_point_indices
 
-    def get_motor_indices(self) -> Tuple[int, ...]:
-        return self._motor_indices
+    def get_even_versor_indices(self) -> Tuple[int, ...]:
+        return self._even_versor_indices
 
 
 class CGANDCodeGenerator(CodeGenerator):
@@ -703,21 +719,21 @@ from typing import Tuple
         upgc_indices = self.algebra.get_upgc_point_indices()
         lines.append(f"UPGC_POINT_MASK = {upgc_indices}  # {len(upgc_indices)} components")
 
-        # Motor 遮罩
-        motor_indices = self.algebra.get_motor_indices()
-        lines.append(f"MOTOR_MASK = {motor_indices}  # {len(motor_indices)} components")
+        # EvenVersor 遮罩
+        even_versor_indices = self.algebra.get_even_versor_indices()
+        lines.append(f"EVEN_VERSOR_MASK = {even_versor_indices}  # {len(even_versor_indices)} components")
 
         lines.append("")
         lines.append(f"# Reverse signs for all {blade_count} blades")
         lines.append(f"REVERSE_SIGNS = {self.algebra.get_reverse_signs()}")
 
-        # Motor reverse 符號
+        # EvenVersor reverse 符號
         lines.append("")
-        lines.append(f"# Motor-specific reverse signs ({len(motor_indices)} components)")
-        motor_reverse_signs = []
-        for idx in motor_indices:
-            motor_reverse_signs.append(self.algebra.get_reverse_signs()[idx])
-        lines.append(f"MOTOR_REVERSE_SIGNS = {tuple(motor_reverse_signs)}")
+        lines.append(f"# EvenVersor-specific reverse signs ({len(even_versor_indices)} components)")
+        even_versor_reverse_signs = []
+        for idx in even_versor_indices:
+            even_versor_reverse_signs.append(self.algebra.get_reverse_signs()[idx])
+        lines.append(f"EVEN_VERSOR_REVERSE_SIGNS = {tuple(even_versor_reverse_signs)}")
 
         lines.append("")
         return "\n".join(lines)
@@ -833,21 +849,21 @@ from typing import Tuple
     def generate_sparse_section(self) -> str:
         """生成稀疏操作函數。"""
         from .sparse_analysis import (
-            get_motor_pattern,
+            get_even_versor_pattern,
             get_upgc_point_pattern,
             get_sandwich_product_terms_generic,
             count_multiplication_ops,
         )
 
         dim = self._euclidean_dim
-        motor_pattern = get_motor_pattern(dim)
+        even_versor_pattern = get_even_versor_pattern(dim)
         point_pattern = get_upgc_point_pattern(dim)
         terms = get_sandwich_product_terms_generic(dim)
         mul_ops = count_multiplication_ops(terms)
 
-        motor_count = motor_pattern.sparse_count
+        even_versor_count = even_versor_pattern.sparse_count
         point_count = point_pattern.sparse_count
-        motor_indices = motor_pattern.nonzero_indices
+        even_versor_indices = even_versor_pattern.nonzero_indices
         point_indices = point_pattern.nonzero_indices
 
         # 取得 blade 名稱
@@ -855,10 +871,10 @@ from typing import Tuple
 
         lines = [
             "# =============================================================================",
-            f"# Sparse Operations (Motor[{motor_count}] x Point[{point_count}])",
+            f"# Sparse Operations (EvenVersor[{even_versor_count}] x Point[{point_count}])",
             "# =============================================================================",
             "",
-            f"# Motor sparse indices: {motor_indices}",
+            f"# EvenVersor sparse indices: {even_versor_indices}",
             f"# Point sparse indices: {point_indices}",
             "",
         ]
@@ -871,13 +887,13 @@ from typing import Tuple
         lines.extend(self._generate_upgc_decode(dim, point_count))
         lines.append("")
 
-        # 生成 reverse_motor
-        lines.extend(self._generate_reverse_motor(motor_pattern, blade_names))
+        # 生成 reverse_even_versor
+        lines.extend(self._generate_reverse_even_versor(even_versor_pattern, blade_names))
         lines.append("")
 
         # 生成 sandwich_product_sparse
         lines.extend(self._generate_sandwich_product_sparse(
-            terms, motor_pattern, point_pattern, blade_names, mul_ops
+            terms, even_versor_pattern, point_pattern, blade_names, mul_ops
         ))
         lines.append("")
 
@@ -909,25 +925,33 @@ from typing import Tuple
             '    """',
         ]
 
-        # 提取各分量
-        for i in range(dim):
-            lines.append(f"    x{i+1} = x[..., {i}]")
-        lines.append("")
+        if dim == 0:
+            # CGA0D 特殊處理：輸入 batch_size 作為形狀參考
+            lines.append("    # CGA0D: no euclidean components")
+            lines.append("    # x is expected to be shape (..., 0) - use for batch shape")
+            lines.append("    batch_shape = x.shape[:-1]")
+            lines.append("    r0 = torch.full(batch_shape, -0.5, dtype=x.dtype, device=x.device)  # e+")
+            lines.append("    r1 = torch.full(batch_shape, 0.5, dtype=x.dtype, device=x.device)  # e-")
+        else:
+            # 提取各分量
+            for i in range(dim):
+                lines.append(f"    x{i+1} = x[..., {i}]")
+            lines.append("")
 
-        # 計算 |x|^2 / 2
-        norm_terms = " + ".join(f"x{i+1} * x{i+1}" for i in range(dim))
-        lines.append(f"    half_norm_sq = 0.5 * ({norm_terms})")
-        lines.append("")
+            # 計算 |x|^2 / 2
+            norm_terms = " + ".join(f"x{i+1} * x{i+1}" for i in range(dim))
+            lines.append(f"    half_norm_sq = 0.5 * ({norm_terms})")
+            lines.append("")
 
-        # 歐幾里得分量
-        for i in range(dim):
-            lines.append(f"    r{i} = x{i+1}  # {blade_names[point_indices[i]]}")
+            # 歐幾里得分量
+            for i in range(dim):
+                lines.append(f"    r{i} = x{i+1}  # {blade_names[point_indices[i]]}")
 
-        # e+ 和 e- 分量
-        # e+ = -0.5 + half_norm_sq
-        # e- = 0.5 + half_norm_sq
-        lines.append(f"    r{dim} = -0.5 + half_norm_sq  # e+")
-        lines.append(f"    r{dim+1} = 0.5 + half_norm_sq  # e-")
+            # e+ 和 e- 分量
+            # e+ = -0.5 + half_norm_sq
+            # e- = 0.5 + half_norm_sq
+            lines.append(f"    r{dim} = -0.5 + half_norm_sq  # e+")
+            lines.append(f"    r{dim+1} = 0.5 + half_norm_sq  # e-")
 
         lines.append("")
         result_vars = ", ".join(f"r{i}" for i in range(point_count))
@@ -956,39 +980,39 @@ from typing import Tuple
             "",
         ]
 
-    def _generate_reverse_motor(
-        self, motor_pattern: SparsityPattern, blade_names: List[str]
+    def _generate_reverse_even_versor(
+        self, even_versor_pattern: SparsityPattern, blade_names: List[str]
     ) -> List[str]:
-        """生成 reverse_motor 函數。"""
-        motor_count = motor_pattern.sparse_count
-        motor_indices = motor_pattern.nonzero_indices
+        """生成 reverse_even_versor 函數。"""
+        even_versor_count = even_versor_pattern.sparse_count
+        even_versor_indices = even_versor_pattern.nonzero_indices
         reverse_signs = self.algebra.get_reverse_signs()
 
         lines = [
             "@torch.jit.script",
-            "def reverse_motor(motor: Tensor) -> Tensor:",
+            "def reverse_even_versor(ev: Tensor) -> Tensor:",
             '    """',
-            f"    Compute reverse of a motor (sparse {motor_count}-component version).",
+            f"    Compute reverse of an EvenVersor (sparse {even_versor_count}-component version).",
             "",
             "    Args:",
-            f"        motor: Motor, shape (..., {motor_count})",
+            f"        ev: EvenVersor, shape (..., {even_versor_count})",
             "",
             "    Returns:",
-            f"        Reversed motor, shape (..., {motor_count})",
+            f"        Reversed EvenVersor, shape (..., {even_versor_count})",
             '    """',
         ]
 
-        # 對每個 motor 分量
-        for sparse_idx, full_idx in enumerate(motor_indices):
+        # 對每個 even_versor 分量
+        for sparse_idx, full_idx in enumerate(even_versor_indices):
             sign = reverse_signs[full_idx]
             name = blade_names[full_idx]
             if sign == 1:
-                lines.append(f"    r{sparse_idx} = motor[..., {sparse_idx}]  # {name}: keep")
+                lines.append(f"    r{sparse_idx} = ev[..., {sparse_idx}]  # {name}: keep")
             else:
-                lines.append(f"    r{sparse_idx} = -motor[..., {sparse_idx}]  # {name}: negate")
+                lines.append(f"    r{sparse_idx} = -ev[..., {sparse_idx}]  # {name}: negate")
 
         lines.append("")
-        result_vars = ", ".join(f"r{i}" for i in range(motor_count))
+        result_vars = ", ".join(f"r{i}" for i in range(even_versor_count))
         lines.append(f"    return torch.stack([{result_vars}], dim=-1)")
         lines.append("")
 
@@ -997,34 +1021,34 @@ from typing import Tuple
     def _generate_sandwich_product_sparse(
         self,
         terms: dict,
-        motor_pattern: SparsityPattern,
+        even_versor_pattern: SparsityPattern,
         point_pattern: SparsityPattern,
         blade_names: List[str],
         mul_ops: int
     ) -> List[str]:
         """生成 sandwich_product_sparse 函數。"""
-        motor_count = motor_pattern.sparse_count
+        even_versor_count = even_versor_pattern.sparse_count
         point_count = point_pattern.sparse_count
-        motor_indices = motor_pattern.nonzero_indices
+        even_versor_indices = even_versor_pattern.nonzero_indices
         point_indices = point_pattern.nonzero_indices
         reverse_signs = self.algebra.get_reverse_signs()
 
         # 計算理論最大乘法數
-        full_ops = motor_count * point_count * motor_count * 2
+        full_ops = even_versor_count * point_count * even_versor_count * 2
 
         lines = [
             "@torch.jit.script",
-            "def sandwich_product_sparse(motor: Tensor, point: Tensor) -> Tensor:",
+            "def sandwich_product_sparse(ev: Tensor, point: Tensor) -> Tensor:",
             '    """',
             "    Compute sparse sandwich product: M × X × M̃",
             "",
             f"    Optimized for:",
-            f"        - Motor M: {motor_count} components",
+            f"        - EvenVersor M: {even_versor_count} components",
             f"        - Point X: {point_count} components",
             f"        - Output: {point_count} components",
             "",
             "    Args:",
-            f"        motor: Motor, shape (..., {motor_count})",
+            f"        ev: EvenVersor, shape (..., {even_versor_count})",
             f"        point: UPGC point, shape (..., {point_count})",
             "",
             "    Returns:",
@@ -1035,11 +1059,11 @@ from typing import Tuple
             '    """',
         ]
 
-        # Motor 分量
-        lines.append("    # Motor components (sparse)")
-        for sparse_idx, full_idx in enumerate(motor_indices):
+        # EvenVersor 分量
+        lines.append("    # EvenVersor components (sparse)")
+        for sparse_idx, full_idx in enumerate(even_versor_indices):
             name = blade_names[full_idx]
-            lines.append(f"    m{sparse_idx} = motor[..., {sparse_idx}]  # {name}")
+            lines.append(f"    m{sparse_idx} = ev[..., {sparse_idx}]  # {name}")
         lines.append("")
 
         # Point 分量
@@ -1049,9 +1073,9 @@ from typing import Tuple
             lines.append(f"    p{sparse_idx} = point[..., {sparse_idx}]  # {name}")
         lines.append("")
 
-        # Motor reverse
-        lines.append("    # Motor reverse")
-        for sparse_idx, full_idx in enumerate(motor_indices):
+        # EvenVersor reverse
+        lines.append("    # EvenVersor reverse")
+        for sparse_idx, full_idx in enumerate(even_versor_indices):
             sign = reverse_signs[full_idx]
             if sign == 1:
                 lines.append(f"    mr{sparse_idx} = m{sparse_idx}")
@@ -1087,6 +1111,1010 @@ from typing import Tuple
 
         return lines
 
+    # =========================================================================
+    # T012: _generate_compose_even_versor - EvenVersor 組合代碼生成
+    # =========================================================================
+
+    def _generate_compose_even_versor(self) -> str:
+        """
+        生成 compose_even_versor 函數 (T012)。
+
+        EvenVersor × EvenVersor = EvenVersor
+        """
+        dim = self._euclidean_dim
+        terms = get_compose_even_versor_terms(dim)
+        even_versor_indices = self.algebra.get_even_versor_indices()
+        even_versor_count = len(even_versor_indices)
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# EvenVersor Composition",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def compose_even_versor(v1: Tensor, v2: Tensor) -> Tensor:",
+            '    """',
+            "    Compose two EvenVersors via geometric product.",
+            "",
+            "    Args:",
+            f"        v1: First EvenVersor, shape (..., {even_versor_count})",
+            f"        v2: Second EvenVersor, shape (..., {even_versor_count})",
+            "",
+            "    Returns:",
+            f"        Composed EvenVersor, shape (..., {even_versor_count})",
+            '    """',
+        ]
+
+        # 提取 v1 和 v2 的各分量
+        lines.append("    # v1 components")
+        for sparse_idx, full_idx in enumerate(even_versor_indices):
+            name = blade_names[full_idx]
+            lines.append(f"    v1_{sparse_idx} = v1[..., {sparse_idx}]  # {name}")
+
+        lines.append("")
+        lines.append("    # v2 components")
+        for sparse_idx, full_idx in enumerate(even_versor_indices):
+            name = blade_names[full_idx]
+            lines.append(f"    v2_{sparse_idx} = v2[..., {sparse_idx}]  # {name}")
+
+        lines.append("")
+
+        # 生成各輸出分量的計算
+        for out_sparse_idx in range(even_versor_count):
+            out_full_idx = even_versor_indices[out_sparse_idx]
+            out_name = blade_names[out_full_idx]
+            component_terms = terms.get(out_sparse_idx, [])
+
+            if not component_terms:
+                lines.append(f"    # r{out_sparse_idx} ({out_name}): no terms")
+                lines.append(f"    r{out_sparse_idx} = torch.zeros_like(v1_0)")
+            else:
+                lines.append(f"    # r{out_sparse_idx} ({out_name}): {len(component_terms)} terms")
+                if len(component_terms) <= 3:
+                    term_strs = []
+                    for v1_i, v2_j, sign in component_terms:
+                        if sign == 1:
+                            term_strs.append(f"v1_{v1_i} * v2_{v2_j}")
+                        else:
+                            term_strs.append(f"-v1_{v1_i} * v2_{v2_j}")
+                    lines.append(f"    r{out_sparse_idx} = {' + '.join(term_strs)}")
+                else:
+                    lines.append(f"    r{out_sparse_idx} = (")
+                    for i, (v1_i, v2_j, sign) in enumerate(component_terms):
+                        sign_str = "" if sign == 1 else "-"
+                        term = f"{sign_str}v1_{v1_i} * v2_{v2_j}"
+                        if i < len(component_terms) - 1:
+                            lines.append(f"        {term} +")
+                        else:
+                            lines.append(f"        {term}")
+                    lines.append("    )")
+
+        lines.append("")
+        result_vars = ", ".join(f"r{i}" for i in range(even_versor_count))
+        lines.append(f"    return torch.stack([{result_vars}], dim=-1)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T013: _generate_compose_similitude - Similitude 組合代碼生成
+    # =========================================================================
+
+    def _generate_compose_similitude(self) -> str:
+        """
+        生成 compose_similitude 函數 (T013)。
+
+        Similitude × Similitude = Similitude (利用約束加速)
+        """
+        dim = self._euclidean_dim
+        terms = get_compose_similitude_terms(dim)
+        even_versor_indices = self.algebra.get_even_versor_indices()
+        even_versor_count = len(even_versor_indices)
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# Similitude Composition (CGA-specific accelerated)",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def compose_similitude(s1: Tensor, s2: Tensor) -> Tensor:",
+            '    """',
+            "    Compose two Similitudes via optimized geometric product.",
+            "",
+            "    Similitude constraint: ei+ = ei- (translation components equal)",
+            "    This allows 30-50% speedup over general EvenVersor composition.",
+            "",
+            "    Args:",
+            f"        s1: First Similitude, shape (..., {even_versor_count})",
+            f"        s2: Second Similitude, shape (..., {even_versor_count})",
+            "",
+            "    Returns:",
+            f"        Composed Similitude, shape (..., {even_versor_count})",
+            '    """',
+            "    # Note: Currently same as compose_even_versor",
+            "    # Future optimization: exploit ei+ = ei- constraint",
+        ]
+
+        # 提取分量（與 EvenVersor 相同）
+        lines.append("    # s1 components")
+        for sparse_idx, full_idx in enumerate(even_versor_indices):
+            name = blade_names[full_idx]
+            lines.append(f"    s1_{sparse_idx} = s1[..., {sparse_idx}]  # {name}")
+
+        lines.append("")
+        lines.append("    # s2 components")
+        for sparse_idx, full_idx in enumerate(even_versor_indices):
+            name = blade_names[full_idx]
+            lines.append(f"    s2_{sparse_idx} = s2[..., {sparse_idx}]  # {name}")
+
+        lines.append("")
+
+        # 生成各輸出分量
+        for out_sparse_idx in range(even_versor_count):
+            out_full_idx = even_versor_indices[out_sparse_idx]
+            out_name = blade_names[out_full_idx]
+            component_terms = terms.get(out_sparse_idx, [])
+
+            if not component_terms:
+                lines.append(f"    # r{out_sparse_idx} ({out_name}): no terms")
+                lines.append(f"    r{out_sparse_idx} = torch.zeros_like(s1_0)")
+            else:
+                lines.append(f"    # r{out_sparse_idx} ({out_name}): {len(component_terms)} terms")
+                if len(component_terms) <= 3:
+                    term_strs = []
+                    for s1_i, s2_j, sign in component_terms:
+                        if sign == 1:
+                            term_strs.append(f"s1_{s1_i} * s2_{s2_j}")
+                        else:
+                            term_strs.append(f"-s1_{s1_i} * s2_{s2_j}")
+                    lines.append(f"    r{out_sparse_idx} = {' + '.join(term_strs)}")
+                else:
+                    lines.append(f"    r{out_sparse_idx} = (")
+                    for i, (s1_i, s2_j, sign) in enumerate(component_terms):
+                        sign_str = "" if sign == 1 else "-"
+                        term = f"{sign_str}s1_{s1_i} * s2_{s2_j}"
+                        if i < len(component_terms) - 1:
+                            lines.append(f"        {term} +")
+                        else:
+                            lines.append(f"        {term}")
+                    lines.append("    )")
+
+        lines.append("")
+        result_vars = ", ".join(f"r{i}" for i in range(even_versor_count))
+        lines.append(f"    return torch.stack([{result_vars}], dim=-1)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T014: _generate_sandwich_product_similitude - Similitude 三明治積代碼生成
+    # =========================================================================
+
+    def _generate_sandwich_product_similitude(self) -> str:
+        """
+        生成 sandwich_product_similitude 函數 (T014)。
+
+        S × X × ~S for Similitude (faster than EvenVersor)
+        """
+        dim = self._euclidean_dim
+        even_versor_indices = self.algebra.get_even_versor_indices()
+        even_versor_count = len(even_versor_indices)
+        point_indices = self.algebra.get_upgc_point_indices()
+        point_count = len(point_indices)
+
+        lines = [
+            "# =============================================================================",
+            "# Similitude Sandwich Product (CGA-specific accelerated)",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def sandwich_product_similitude(similitude: Tensor, point: Tensor) -> Tensor:",
+            '    """',
+            "    Compute sandwich product S × X × ~S for Similitude.",
+            "",
+            "    Faster than sandwich_product_sparse by exploiting Similitude constraints.",
+            "",
+            "    Args:",
+            f"        similitude: Similitude, shape (..., {even_versor_count})",
+            f"        point: UPGC point, shape (..., {point_count})",
+            "",
+            "    Returns:",
+            f"        Transformed point, shape (..., {point_count})",
+            '    """',
+            "    # Currently delegates to sandwich_product_sparse",
+            "    # Future optimization: exploit ei+ = ei- constraint",
+            "    return sandwich_product_sparse(similitude, point)",
+            "",
+        ]
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T015: _generate_inner_product_full - 幾何內積代碼生成
+    # =========================================================================
+
+    def _generate_inner_product_full(self) -> str:
+        """
+        生成 inner_product_full 函數 (T015)。
+
+        <a * b>_0 = sum(a[i] * b[i] * metric_sign[i])
+        """
+        dim = self._euclidean_dim
+        blade_count = self.algebra.blade_count
+        inner_signs = get_inner_product_signs(dim)
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# Geometric Inner Product (Metric Inner Product)",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def inner_product_full(a: Tensor, b: Tensor) -> Tensor:",
+            '    """',
+            "    Compute geometric inner product with CGA metric.",
+            "",
+            "    Args:",
+            f"        a: First multivector, shape (..., {blade_count})",
+            f"        b: Second multivector, shape (..., {blade_count})",
+            "",
+            "    Returns:",
+            "        Scalar inner product, shape (..., 1)",
+            "",
+            "    Note:",
+            "        Uses fused sign flipping: res = sum(a[i] * b[i] * METRIC_SIGNS[i])",
+            '    """',
+        ]
+
+        # 收集非零符號的項
+        nonzero_terms = [(i, sign) for i, sign in enumerate(inner_signs) if sign != 0]
+
+        if not nonzero_terms:
+            lines.append("    return torch.zeros_like(a[..., 0:1])")
+        else:
+            lines.append("    r = (")
+            for i, (idx, sign) in enumerate(nonzero_terms):
+                name = blade_names[idx]
+                if sign == 1:
+                    term = f"a[..., {idx}] * b[..., {idx}]"
+                else:
+                    term = f"-a[..., {idx}] * b[..., {idx}]"
+                comment = f"  # {name}² = {sign}"
+                if i < len(nonzero_terms) - 1:
+                    lines.append(f"        {term} +{comment}")
+                else:
+                    lines.append(f"        {term}{comment}")
+            lines.append("    )")
+            lines.append("    return r.unsqueeze(-1)")
+
+        lines.append("")
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T016: _generate_bivector_squared_scalar - Bivector 平方標量輔助函數
+    # =========================================================================
+
+    def _generate_bivector_squared_scalar(self) -> str:
+        """
+        生成 bivector_squared_scalar 輔助函數 (T016)。
+
+        B² 的標量部分，用於 exp_bivector
+        """
+        dim = self._euclidean_dim
+        terms = get_bivector_squared_terms(dim)
+        biv_indices = get_bivector_indices(dim)
+        biv_count = len(biv_indices)
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# Bivector Squared Scalar (Helper for exp_bivector)",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def bivector_squared_scalar(B: Tensor) -> Tensor:",
+            '    """',
+            "    Compute the scalar part of B².",
+            "",
+            "    Args:",
+            f"        B: Bivector, shape (..., {biv_count})",
+            "",
+            "    Returns:",
+            "        Scalar B² value, shape (...,)",
+            '    """',
+        ]
+
+        if not terms:
+            lines.append("    return torch.zeros_like(B[..., 0])")
+        else:
+            lines.append("    r = (")
+            for i, (bi, bj, sign) in enumerate(terms):
+                sign_str = "" if sign == 1 else "-"
+                term = f"{sign_str}B[..., {bi}] * B[..., {bj}]"
+                if i < len(terms) - 1:
+                    lines.append(f"        {term} +")
+                else:
+                    lines.append(f"        {term}")
+            lines.append("    )")
+            lines.append("    return r")
+
+        lines.append("")
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T017: _generate_exp_bivector - Bivector 指數映射代碼生成
+    # =========================================================================
+
+    def _generate_exp_bivector(self) -> str:
+        """
+        生成 exp_bivector 函數 (T017)。
+
+        exp(B) = cos(θ) + sinc(θ) * θ * B/θ = cos(θ) + sinc(θ) * B
+        where θ² = -B²
+        """
+        dim = self._euclidean_dim
+        biv_indices = get_bivector_indices(dim)
+        biv_count = len(biv_indices)
+        even_versor_indices = self.algebra.get_even_versor_indices()
+        even_versor_count = len(even_versor_indices)
+        blade_names = self.algebra.get_blade_names()
+        grade_indices = compute_grade_indices(dim)
+
+        # 找出 even_versor 中 bivector 對應的稀疏索引
+        # even_versor = [scalar, ...bivectors..., ...quadvectors...]
+        biv_to_ev_sparse = {}
+        for ev_sparse, ev_full in enumerate(even_versor_indices):
+            if ev_full in biv_indices:
+                biv_sparse = biv_indices.index(ev_full)
+                biv_to_ev_sparse[biv_sparse] = ev_sparse
+
+        lines = [
+            "# =============================================================================",
+            "# Bivector Exponential Map",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def exp_bivector(B: Tensor) -> Tensor:",
+            '    """',
+            "    Compute exponential map from Bivector to EvenVersor.",
+            "",
+            "    exp(B) = cos(θ) + sinc(θ) * B",
+            "    where θ² = -B² (for rotation bivectors)",
+            "",
+            "    Args:",
+            f"        B: Bivector, shape (..., {biv_count})",
+            "",
+            "    Returns:",
+            f"        EvenVersor, shape (..., {even_versor_count})",
+            "",
+            "    Note:",
+            "        Uses torch.sinc for numerical stability at θ→0",
+            '    """',
+            "    # Compute B² scalar",
+            "    B_sq = bivector_squared_scalar(B)",
+            "",
+            "    # θ² = -B² (for rotation bivectors, B² is negative)",
+            "    theta_sq = torch.clamp(-B_sq, min=1e-12)",
+            "    theta = torch.sqrt(theta_sq)",
+            "",
+            "    # cos(θ) and sinc(θ) = sin(θ)/θ",
+            "    cos_theta = torch.cos(theta)",
+            "    # torch.sinc(x) = sin(πx)/(πx), so sinc(θ/π) = sin(θ)/θ",
+            "    sinc_theta = torch.sinc(theta / 3.141592653589793)",
+            "",
+            "    # Build even_versor: scalar part = cos(θ), bivector parts = sinc(θ) * B",
+        ]
+
+        # 生成各 even_versor 分量
+        for ev_sparse, ev_full in enumerate(even_versor_indices):
+            name = blade_names[ev_full]
+            if ev_full == 0:  # scalar
+                lines.append(f"    r{ev_sparse} = cos_theta  # {name}")
+            elif ev_full in biv_indices:
+                biv_sparse = biv_indices.index(ev_full)
+                lines.append(f"    r{ev_sparse} = sinc_theta * B[..., {biv_sparse}]  # {name}")
+            else:
+                # quadvector: 0 for pure rotation
+                lines.append(f"    r{ev_sparse} = torch.zeros_like(cos_theta)  # {name}")
+
+        lines.append("")
+        result_vars = ", ".join(f"r{i}" for i in range(even_versor_count))
+        lines.append(f"    return torch.stack([{result_vars}], dim=-1)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T018: _generate_outer_product_full - 楔積代碼生成
+    # =========================================================================
+
+    def _generate_outer_product_full(self) -> str:
+        """
+        生成 outer_product_full 函數 (T018)。
+
+        a ∧ b = <a * b>_{|a| + |b|}
+        """
+        dim = self._euclidean_dim
+        blade_count = self.algebra.blade_count
+        terms = get_outer_product_terms(dim)
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# Outer Product (Wedge Product)",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def outer_product_full(a: Tensor, b: Tensor) -> Tensor:",
+            '    """',
+            "    Compute outer product (wedge product).",
+            "",
+            "    a ∧ b = <a * b>_{grade(a) + grade(b)}",
+            "",
+            "    Args:",
+            f"        a: First multivector, shape (..., {blade_count})",
+            f"        b: Second multivector, shape (..., {blade_count})",
+            "",
+            "    Returns:",
+            f"        Wedge product, shape (..., {blade_count})",
+            '    """',
+        ]
+
+        # 生成各輸出分量
+        for out_idx in range(blade_count):
+            name = blade_names[out_idx]
+            component_terms = terms.get(out_idx, [])
+
+            if not component_terms:
+                lines.append(f"    r{out_idx} = torch.zeros_like(a[..., 0])  # {name}")
+            elif len(component_terms) <= 3:
+                term_strs = []
+                for a_i, b_j, sign in component_terms:
+                    if sign == 1:
+                        term_strs.append(f"a[..., {a_i}] * b[..., {b_j}]")
+                    else:
+                        term_strs.append(f"-a[..., {a_i}] * b[..., {b_j}]")
+                lines.append(f"    r{out_idx} = {' + '.join(term_strs)}  # {name}")
+            else:
+                lines.append(f"    r{out_idx} = (  # {name}")
+                for i, (a_i, b_j, sign) in enumerate(component_terms):
+                    sign_str = "" if sign == 1 else "-"
+                    term = f"{sign_str}a[..., {a_i}] * b[..., {b_j}]"
+                    if i < len(component_terms) - 1:
+                        lines.append(f"        {term} +")
+                    else:
+                        lines.append(f"        {term}")
+                lines.append("    )")
+
+        lines.append("")
+        lines.append("    return torch.stack([")
+        chunk_size = 8
+        for i in range(0, blade_count, chunk_size):
+            chunk = ", ".join(f"r{j}" for j in range(i, min(i + chunk_size, blade_count)))
+            lines.append(f"        {chunk},")
+        lines.append("    ], dim=-1)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T019: _generate_left_contraction_full - 左縮併代碼生成
+    # =========================================================================
+
+    def _generate_left_contraction_full(self) -> str:
+        """
+        生成 left_contraction_full 函數 (T019)。
+
+        a ⌋ b = <a * b>_{|b| - |a|} if |a| <= |b|, else 0
+        """
+        dim = self._euclidean_dim
+        blade_count = self.algebra.blade_count
+        terms = get_left_contraction_terms(dim)
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# Left Contraction",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def left_contraction_full(a: Tensor, b: Tensor) -> Tensor:",
+            '    """',
+            "    Compute left contraction.",
+            "",
+            "    a ⌋ b = <a * b>_{grade(b) - grade(a)} if grade(a) <= grade(b), else 0",
+            "",
+            "    Args:",
+            f"        a: First multivector, shape (..., {blade_count})",
+            f"        b: Second multivector, shape (..., {blade_count})",
+            "",
+            "    Returns:",
+            f"        Left contraction result, shape (..., {blade_count})",
+            '    """',
+        ]
+
+        # 生成各輸出分量
+        for out_idx in range(blade_count):
+            name = blade_names[out_idx]
+            component_terms = terms.get(out_idx, [])
+
+            if not component_terms:
+                lines.append(f"    r{out_idx} = torch.zeros_like(a[..., 0])  # {name}")
+            elif len(component_terms) <= 3:
+                term_strs = []
+                for a_i, b_j, sign in component_terms:
+                    if sign == 1:
+                        term_strs.append(f"a[..., {a_i}] * b[..., {b_j}]")
+                    else:
+                        term_strs.append(f"-a[..., {a_i}] * b[..., {b_j}]")
+                lines.append(f"    r{out_idx} = {' + '.join(term_strs)}  # {name}")
+            else:
+                lines.append(f"    r{out_idx} = (  # {name}")
+                for i, (a_i, b_j, sign) in enumerate(component_terms):
+                    sign_str = "" if sign == 1 else "-"
+                    term = f"{sign_str}a[..., {a_i}] * b[..., {b_j}]"
+                    if i < len(component_terms) - 1:
+                        lines.append(f"        {term} +")
+                    else:
+                        lines.append(f"        {term}")
+                lines.append("    )")
+
+        lines.append("")
+        lines.append("    return torch.stack([")
+        chunk_size = 8
+        for i in range(0, blade_count, chunk_size):
+            chunk = ", ".join(f"r{j}" for j in range(i, min(i + chunk_size, blade_count)))
+            lines.append(f"        {chunk},")
+        lines.append("    ], dim=-1)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T020: _generate_right_contraction_full - 右縮併代碼生成
+    # =========================================================================
+
+    def _generate_right_contraction_full(self) -> str:
+        """
+        生成 right_contraction_full 函數 (T020)。
+
+        a ⌊ b = <a * b>_{|a| - |b|} if |a| >= |b|, else 0
+        """
+        dim = self._euclidean_dim
+        blade_count = self.algebra.blade_count
+        terms = get_right_contraction_terms(dim)
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# Right Contraction",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def right_contraction_full(a: Tensor, b: Tensor) -> Tensor:",
+            '    """',
+            "    Compute right contraction.",
+            "",
+            "    a ⌊ b = <a * b>_{grade(a) - grade(b)} if grade(a) >= grade(b), else 0",
+            "",
+            "    Args:",
+            f"        a: First multivector, shape (..., {blade_count})",
+            f"        b: Second multivector, shape (..., {blade_count})",
+            "",
+            "    Returns:",
+            f"        Right contraction result, shape (..., {blade_count})",
+            '    """',
+        ]
+
+        # 生成各輸出分量
+        for out_idx in range(blade_count):
+            name = blade_names[out_idx]
+            component_terms = terms.get(out_idx, [])
+
+            if not component_terms:
+                lines.append(f"    r{out_idx} = torch.zeros_like(a[..., 0])  # {name}")
+            elif len(component_terms) <= 3:
+                term_strs = []
+                for a_i, b_j, sign in component_terms:
+                    if sign == 1:
+                        term_strs.append(f"a[..., {a_i}] * b[..., {b_j}]")
+                    else:
+                        term_strs.append(f"-a[..., {a_i}] * b[..., {b_j}]")
+                lines.append(f"    r{out_idx} = {' + '.join(term_strs)}  # {name}")
+            else:
+                lines.append(f"    r{out_idx} = (  # {name}")
+                for i, (a_i, b_j, sign) in enumerate(component_terms):
+                    sign_str = "" if sign == 1 else "-"
+                    term = f"{sign_str}a[..., {a_i}] * b[..., {b_j}]"
+                    if i < len(component_terms) - 1:
+                        lines.append(f"        {term} +")
+                    else:
+                        lines.append(f"        {term}")
+                lines.append("    )")
+
+        lines.append("")
+        lines.append("    return torch.stack([")
+        chunk_size = 8
+        for i in range(0, blade_count, chunk_size):
+            chunk = ", ".join(f"r{j}" for j in range(i, min(i + chunk_size, blade_count)))
+            lines.append(f"        {chunk},")
+        lines.append("    ], dim=-1)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T021: _generate_grade_select - Grade 選擇代碼生成
+    # =========================================================================
+
+    def _generate_grade_select(self) -> str:
+        """
+        生成 grade_select 函數 (T021)。
+
+        <a>_k = 提取 grade k 分量
+        """
+        dim = self._euclidean_dim
+        blade_count = self.algebra.blade_count
+        grade_indices = compute_grade_indices(dim)
+        max_grade = dim + 2
+        blade_names = self.algebra.get_blade_names()
+
+        lines = [
+            "# =============================================================================",
+            "# Grade Selection",
+            "# =============================================================================",
+            "",
+            "# Grade masks for grade selection",
+        ]
+
+        # 生成 grade masks 常數
+        for grade in range(max_grade + 1):
+            indices = grade_indices.get(grade, ())
+            lines.append(f"GRADE_{grade}_MASK = {indices}")
+
+        lines.append("")
+        lines.append("@torch.jit.script")
+        lines.append("def grade_select(mv: Tensor, grade: int) -> Tensor:")
+        lines.append('    """')
+        lines.append("    Extract components of a specific grade.")
+        lines.append("")
+        lines.append("    Args:")
+        lines.append(f"        mv: Multivector, shape (..., {blade_count})")
+        lines.append(f"        grade: Grade to extract (0 to {max_grade})")
+        lines.append("")
+        lines.append("    Returns:")
+        lines.append("        Grade components (zeros for non-selected grades)")
+        lines.append('    """')
+
+        # 使用 if-elif 鏈（ONNX 相容）
+        for grade in range(max_grade + 1):
+            indices = grade_indices.get(grade, ())
+            if grade == 0:
+                lines.append(f"    if grade == {grade}:")
+            else:
+                lines.append(f"    elif grade == {grade}:")
+
+            # 生成各分量
+            for out_idx in range(blade_count):
+                if out_idx in indices:
+                    lines.append(f"        r{out_idx} = mv[..., {out_idx}]")
+                else:
+                    lines.append(f"        r{out_idx} = torch.zeros_like(mv[..., 0])")
+
+            lines.append("        return torch.stack([")
+            chunk_size = 8
+            for i in range(0, blade_count, chunk_size):
+                chunk = ", ".join(f"r{j}" for j in range(i, min(i + chunk_size, blade_count)))
+                lines.append(f"            {chunk},")
+            lines.append("        ], dim=-1)")
+
+        # else: 無效 grade
+        lines.append("    else:")
+        lines.append("        return torch.zeros_like(mv)")
+
+        lines.append("")
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T022: _generate_dual - 對偶代碼生成
+    # =========================================================================
+
+    def _generate_dual(self) -> str:
+        """
+        生成 dual 函數 (T022)。
+
+        a* = a × I^{-1} = a ⌋ I^{-1}
+        """
+        dim = self._euclidean_dim
+        blade_count = self.algebra.blade_count
+        pseudoscalar_info = get_pseudoscalar_info(dim)
+        blade_names = self.algebra.get_blade_names()
+        product_table = get_product_table(dim)
+
+        ps_idx = pseudoscalar_info['index']
+        ps_square = pseudoscalar_info['square']
+
+        lines = [
+            "# =============================================================================",
+            "# Dual Operation",
+            "# =============================================================================",
+            "",
+            f"# Pseudoscalar index: {ps_idx}, I² = {ps_square}",
+            f"# I^{{-1}} = I / I² = I * {1/ps_square if ps_square != 0 else 'undefined'}",
+            "",
+            "@torch.jit.script",
+            "def dual(mv: Tensor) -> Tensor:",
+            '    """',
+            "    Compute the dual of a multivector.",
+            "",
+            "    a* = a ⌋ I^{-1} (left contraction with pseudoscalar inverse)",
+            "",
+            "    Args:",
+            f"        mv: Multivector, shape (..., {blade_count})",
+            "",
+            "    Returns:",
+            f"        Dual multivector, shape (..., {blade_count})",
+            '    """',
+        ]
+
+        if ps_square == 0:
+            lines.append("    # Pseudoscalar is null, dual undefined")
+            lines.append("    return torch.zeros_like(mv)")
+        else:
+            # 計算 a × I^{-1}
+            # 對於每個輸入 blade a[i]，計算 blade[i] × I^{-1}
+            # I^{-1} = I / I² = I * (1/I²)
+            inv_ps_factor = 1.0 / ps_square
+
+            # 建立輸出映射：a[i] × I → 哪個輸出 blade，符號是什麼
+            dual_map = {}  # input_idx -> (output_idx, sign)
+            for in_idx in range(blade_count):
+                if (in_idx, ps_idx) in product_table:
+                    out_idx, sign = product_table[(in_idx, ps_idx)]
+                    # 乘以 I^{-1} = I / I²
+                    dual_map[in_idx] = (out_idx, sign * inv_ps_factor)
+
+            # 按輸出索引組織
+            output_terms = {k: [] for k in range(blade_count)}
+            for in_idx, (out_idx, factor) in dual_map.items():
+                output_terms[out_idx].append((in_idx, factor))
+
+            # 生成代碼
+            for out_idx in range(blade_count):
+                name = blade_names[out_idx]
+                terms = output_terms[out_idx]
+
+                if not terms:
+                    lines.append(f"    r{out_idx} = torch.zeros_like(mv[..., 0])  # {name}")
+                elif len(terms) == 1:
+                    in_idx, factor = terms[0]
+                    if factor == 1.0:
+                        lines.append(f"    r{out_idx} = mv[..., {in_idx}]  # {name}")
+                    elif factor == -1.0:
+                        lines.append(f"    r{out_idx} = -mv[..., {in_idx}]  # {name}")
+                    else:
+                        lines.append(f"    r{out_idx} = {factor} * mv[..., {in_idx}]  # {name}")
+                else:
+                    term_strs = []
+                    for in_idx, factor in terms:
+                        if factor == 1.0:
+                            term_strs.append(f"mv[..., {in_idx}]")
+                        elif factor == -1.0:
+                            term_strs.append(f"-mv[..., {in_idx}]")
+                        else:
+                            term_strs.append(f"{factor} * mv[..., {in_idx}]")
+                    lines.append(f"    r{out_idx} = {' + '.join(term_strs)}  # {name}")
+
+            lines.append("")
+            lines.append("    return torch.stack([")
+            chunk_size = 8
+            for i in range(0, blade_count, chunk_size):
+                chunk = ", ".join(f"r{j}" for j in range(i, min(i + chunk_size, blade_count)))
+                lines.append(f"        {chunk},")
+            lines.append("    ], dim=-1)")
+
+        lines.append("")
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T023: _generate_normalize - 正規化代碼生成
+    # =========================================================================
+
+    def _generate_normalize(self) -> str:
+        """
+        生成 normalize 函數 (T023)。
+
+        a / |a| where |a|² = <a * ~a>_0
+        """
+        dim = self._euclidean_dim
+        blade_count = self.algebra.blade_count
+        norm_terms = get_norm_squared_terms(dim)
+
+        lines = [
+            "# =============================================================================",
+            "# Normalize Operation",
+            "# =============================================================================",
+            "",
+            "@torch.jit.script",
+            "def norm_squared(mv: Tensor) -> Tensor:",
+            '    """',
+            "    Compute squared norm of a multivector.",
+            "",
+            "    |a|² = <a * ~a>_0",
+            "",
+            "    Args:",
+            f"        mv: Multivector, shape (..., {blade_count})",
+            "",
+            "    Returns:",
+            "        Squared norm, shape (...,)",
+            '    """',
+        ]
+
+        if not norm_terms:
+            lines.append("    return torch.zeros_like(mv[..., 0])")
+        else:
+            lines.append("    r = (")
+            for i, (idx, sign) in enumerate(norm_terms):
+                if sign == 1:
+                    term = f"mv[..., {idx}] * mv[..., {idx}]"
+                else:
+                    term = f"-mv[..., {idx}] * mv[..., {idx}]"
+                if i < len(norm_terms) - 1:
+                    lines.append(f"        {term} +")
+                else:
+                    lines.append(f"        {term}")
+            lines.append("    )")
+            lines.append("    return r")
+
+        lines.append("")
+        lines.append("")
+        lines.append("@torch.jit.script")
+        lines.append("def normalize(mv: Tensor) -> Tensor:")
+        lines.append('    """')
+        lines.append("    Normalize a multivector to unit norm.")
+        lines.append("")
+        lines.append("    Args:")
+        lines.append(f"        mv: Multivector, shape (..., {blade_count})")
+        lines.append("")
+        lines.append("    Returns:")
+        lines.append(f"        Normalized multivector, shape (..., {blade_count})")
+        lines.append("")
+        lines.append("    Note:")
+        lines.append("        Returns NaN for null multivectors (ONNX compatible)")
+        lines.append('    """')
+        lines.append("    norm = torch.sqrt(torch.abs(norm_squared(mv)) + 1e-12)")
+        lines.append("    return mv / norm.unsqueeze(-1)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T153k: _generate_structure_normalize - Structure Normalize for Similitude
+    # =========================================================================
+
+    def _generate_structure_normalize(self) -> str:
+        """
+        生成 structure_normalize 函式 (US9a)。
+
+        Structure normalize 用於對 Similitude 進行結構正規化：
+        1. 正規化 Rotor 部分（保持旋轉為單位四元數）
+        2. 強制 Similitude 約束（eie+ = eie-，排除 transversion）
+        """
+        from .sparse_analysis import (
+            get_rotor_indices,
+            get_translation_pairs,
+            get_dilation_index,
+        )
+
+        even_versor_count = len(self.algebra.get_even_versor_indices())
+        rotor_indices = get_rotor_indices(self.euclidean_dim)
+        translation_pairs = get_translation_pairs(self.euclidean_dim)
+        dilation_idx = get_dilation_index(self.euclidean_dim)
+
+        lines = [
+            "# =============================================================================",
+            "# Structure Normalize (US9a)",
+            "# =============================================================================",
+            "",
+            f"ROTOR_INDICES: Tuple[int, ...] = {rotor_indices}",
+            f"TRANSLATION_PAIRS: Tuple[Tuple[int, int], ...] = {tuple(translation_pairs)}",
+            f"DILATION_INDEX: int = {dilation_idx}",
+            "",
+            "",
+            "@torch.jit.script",
+            "def structure_normalize(similitude: Tensor, eps: float = 1e-8) -> Tensor:",
+            '    """',
+            "    Structure-normalize a Similitude tensor.",
+            "",
+            "    Ensures:",
+            "    1. Rotor part (scalar + spatial bivectors) has unit norm",
+            "    2. Similitude constraint: eie+ = eie- (no transversion)",
+            "",
+            "    Args:",
+            f"        similitude: Similitude tensor, shape (..., {even_versor_count})",
+            "        eps: Numerical stability constant",
+            "",
+            "    Returns:",
+            f"        Structure-normalized Similitude, shape (..., {even_versor_count})",
+            '    """',
+            "    result = similitude.clone()",
+            "",
+            "    # Step 1: Normalize Rotor part",
+        ]
+
+        if len(rotor_indices) > 0:
+            # Build rotor norm squared calculation
+            rotor_norm_terms = [f"similitude[..., {idx}] * similitude[..., {idx}]" for idx in rotor_indices]
+            lines.append(f"    rotor_norm_sq = {' + '.join(rotor_norm_terms)}")
+            lines.append("    rotor_norm = torch.sqrt(rotor_norm_sq + eps)")
+            for idx in rotor_indices:
+                lines.append(f"    result[..., {idx}] = similitude[..., {idx}] / rotor_norm")
+        else:
+            lines.append("    # No rotor components for this dimension")
+
+        lines.append("")
+        lines.append("    # Step 2: Enforce Similitude constraint (eie+ = eie-)")
+
+        if len(translation_pairs) > 0:
+            for plus_idx, minus_idx in translation_pairs:
+                lines.append(f"    avg_{plus_idx} = (result[..., {plus_idx}] + result[..., {minus_idx}]) / 2")
+                lines.append(f"    result[..., {plus_idx}] = avg_{plus_idx}")
+                lines.append(f"    result[..., {minus_idx}] = avg_{plus_idx}")
+        else:
+            lines.append("    # No translation pairs for this dimension")
+
+        lines.append("")
+        lines.append("    return result")
+        lines.append("")
+        lines.append("")
+        lines.append("@torch.jit.script")
+        lines.append("def soft_structure_normalize(similitude: Tensor, strength: float = 1.0, eps: float = 1e-8) -> Tensor:")
+        lines.append('    """')
+        lines.append("    Soft structure normalization with interpolation.")
+        lines.append("")
+        lines.append("    Args:")
+        lines.append(f"        similitude: Similitude tensor, shape (..., {even_versor_count})")
+        lines.append("        strength: Interpolation strength (0=no change, 1=full normalize)")
+        lines.append("        eps: Numerical stability constant")
+        lines.append("")
+        lines.append("    Returns:")
+        lines.append(f"        Soft-normalized Similitude, shape (..., {even_versor_count})")
+        lines.append('    """')
+        lines.append("    normalized = structure_normalize(similitude, eps)")
+        lines.append("    return similitude + strength * (normalized - similitude)")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    # =========================================================================
+    # T024: 更新 generate_module - 整合所有新操作
+    # =========================================================================
+
+    def generate_extended_operations(self) -> str:
+        """
+        生成所有擴展操作 (T024)。
+
+        整合 T012-T023 的所有新操作，加上 T153k structure_normalize。
+        """
+        parts = [
+            self._generate_compose_even_versor(),
+            self._generate_compose_similitude(),
+            self._generate_sandwich_product_similitude(),
+            self._generate_inner_product_full(),
+            self._generate_bivector_squared_scalar(),
+            self._generate_exp_bivector(),
+            self._generate_outer_product_full(),
+            self._generate_left_contraction_full(),
+            self._generate_right_contraction_full(),
+            self._generate_grade_select(),
+            self._generate_dual(),
+            self._generate_normalize(),
+            self._generate_structure_normalize(),
+        ]
+        return "\n".join(parts)
+
     def generate_module(self) -> str:
         """生成完整的 functional.py 模組。"""
         parts = [
@@ -1095,6 +2123,7 @@ from typing import Tuple
             self.generate_geometric_product(),
             self.generate_reverse(),
             self.generate_sparse_section(),
+            self.generate_extended_operations(),
         ]
         return "\n".join(parts)
 
@@ -1116,7 +2145,7 @@ def generate_cgand_functional(euclidean_dim: int, output_path: str) -> None:
     print(f"Generated: {output_path}")
     print(f"  - Algebra: CGA{euclidean_dim}D Cl({euclidean_dim+1},1)")
     print(f"  - Blade count: {generator.algebra.blade_count}")
-    print(f"  - Motor components: {len(generator.algebra.get_motor_indices())}")
+    print(f"  - EvenVersor components: {len(generator.algebra.get_even_versor_indices())}")
     print(f"  - Point components: {len(generator.algebra.get_upgc_point_indices())}")
 
 

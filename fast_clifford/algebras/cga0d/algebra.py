@@ -54,12 +54,12 @@ GRADE_INDICES = (
 # Layout: [e+, e-]
 UPGC_POINT_MASK = GRADE_1_INDICES
 
-# Motor: Grade 0, 2 (1 + 1 = 2 components)
+# EvenVersor: Grade 0, 2 (1 + 1 = 2 components)
 # Layout: [scalar, e+-]
-MOTOR_MASK = (0, 3)
+EVEN_VERSOR_MASK = (0, 3)
 
-# Motor sparse indices (full index -> sparse index mapping)
-MOTOR_SPARSE_INDICES = MOTOR_MASK
+# EvenVersor sparse indices (full index -> sparse index mapping)
+EVEN_VERSOR_SPARSE_INDICES = EVEN_VERSOR_MASK
 
 
 # =============================================================================
@@ -76,9 +76,9 @@ REVERSE_SIGNS_BY_GRADE = {
 # Grade 0: +1, Grade 1: +1, +1, Grade 2: -1
 REVERSE_SIGNS = (1, 1, 1, -1)
 
-# Motor reverse signs (2 components)
+# EvenVersor reverse signs (2 components)
 # Grade 0 (+1), Grade 2 (-1)
-MOTOR_REVERSE_SIGNS = (1, -1)
+EVEN_VERSOR_REVERSE_SIGNS = (1, -1)
 
 
 # =============================================================================
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     print()
 
     print(f"UPGC Point mask: {UPGC_POINT_MASK} ({len(UPGC_POINT_MASK)} components)")
-    print(f"Motor mask: {MOTOR_MASK} ({len(MOTOR_MASK)} components)")
+    print(f"EvenVersor mask: {EVEN_VERSOR_MASK} ({len(EVEN_VERSOR_MASK)} components)")
     print()
 
     print("Blade info:")

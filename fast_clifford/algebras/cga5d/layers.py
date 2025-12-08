@@ -8,7 +8,7 @@ Provides CGA5DCareLayer that wraps the sandwich product with:
 
 CGA5D Cl(6,1) specifications:
 - 128 blades total
-- Motor: 64 components (Grade 0 + 2 + 4 + 6)
+- EvenVersor: 64 components (Grade 0 + 2 + 4 + 6)
 - UPGC Point: 7 components (Grade 1)
 """
 
@@ -24,7 +24,7 @@ class CGA5DCareLayer(nn.Module):
     CGA5D sandwich product layer for point transformation.
 
     Computes M × X × M̃ where:
-    - M is a motor (64 components: Grade 0, 2, 4, 6)
+    - M is an EvenVersor (64 components: Grade 0, 2, 4, 6)
     - X is a UPGC point (7 components: Grade 1)
     - Output is a transformed UPGC point (7 components)
 
@@ -34,22 +34,22 @@ class CGA5DCareLayer(nn.Module):
 
     Example:
         >>> layer = CGA5DCareLayer()
-        >>> motor = torch.randn(batch_size, 64)
+        >>> ev = torch.randn(batch_size, 64)
         >>> point = torch.randn(batch_size, 7)
-        >>> output = layer(motor, point)  # shape: (batch_size, 7)
+        >>> output = layer(ev, point)  # shape: (batch_size, 7)
     """
 
     def __init__(self):
         """Initialize the CGA5DCareLayer."""
         super().__init__()
 
-    def forward(self, motor: Tensor, point: Tensor) -> Tensor:
+    def forward(self, ev: Tensor, point: Tensor) -> Tensor:
         """
-        Apply motor transformation to point via sandwich product.
+        Apply EvenVersor transformation to point via sandwich product.
 
         Args:
-            motor: Motor tensor, shape (..., 64)
-                   Layout: [scalar (1), Grade 2 (21), Grade 4 (35), Grade 6 (7)]
+            ev: EvenVersor tensor, shape (..., 64)
+                Layout: [scalar (1), Grade 2 (21), Grade 4 (35), Grade 6 (7)]
             point: UPGC point tensor, shape (..., 7)
                    Layout: [e1, e2, e3, e4, e5, e+, e-]
 
@@ -60,11 +60,11 @@ class CGA5DCareLayer(nn.Module):
         original_dtype = point.dtype
 
         # Convert to float32 for stable CGA computation
-        motor_f32 = motor.to(torch.float32)
+        ev_f32 = ev.to(torch.float32)
         point_f32 = point.to(torch.float32)
 
         # Compute sandwich product
-        result = F.sandwich_product_sparse(motor_f32, point_f32)
+        result = F.sandwich_product_sparse(ev_f32, point_f32)
 
         # Convert back to original dtype
         return result.to(original_dtype)
@@ -135,14 +135,14 @@ class CGA5DTransformPipeline(nn.Module):
 
     Combines encoding, transformation, and decoding:
     1. Encode 5D point to UPGC representation
-    2. Apply motor transformation via sandwich product
+    2. Apply EvenVersor transformation via sandwich product
     3. Decode back to 5D point
 
     Example:
         >>> pipeline = CGA5DTransformPipeline()
-        >>> motor = torch.randn(batch_size, 64)
+        >>> ev = torch.randn(batch_size, 64)
         >>> x_5d = torch.randn(batch_size, 5)
-        >>> y_5d = pipeline(motor, x_5d)  # shape: (batch_size, 5)
+        >>> y_5d = pipeline(ev, x_5d)  # shape: (batch_size, 5)
     """
 
     def __init__(self):
@@ -152,17 +152,17 @@ class CGA5DTransformPipeline(nn.Module):
         self.care_layer = CGA5DCareLayer()
         self.decoder = UPGC5DDecoder()
 
-    def forward(self, motor: Tensor, x: Tensor) -> Tensor:
+    def forward(self, ev: Tensor, x: Tensor) -> Tensor:
         """
-        Apply motor transformation to 5D point.
+        Apply EvenVersor transformation to 5D point.
 
         Args:
-            motor: Motor tensor, shape (..., 64)
+            ev: EvenVersor tensor, shape (..., 64)
             x: 5D point, shape (..., 5)
 
         Returns:
             Transformed 5D point, shape (..., 5)
         """
         point = self.encoder(x)
-        transformed = self.care_layer(motor, point)
+        transformed = self.care_layer(ev, point)
         return self.decoder(transformed)

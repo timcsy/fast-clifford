@@ -19,7 +19,7 @@ class CGACareLayer(nn.Module):
     CGA sandwich product layer for point transformation.
 
     Computes M × X × M̃ where:
-    - M is a motor (16 components: Grade 0, 2, 4)
+    - M is an EvenVersor (16 components: Grade 0, 2, 4)
     - X is a UPGC point (5 components: Grade 1)
     - Output is a transformed UPGC point (5 components)
 
@@ -29,21 +29,21 @@ class CGACareLayer(nn.Module):
 
     Example:
         >>> layer = CGACareLayer()
-        >>> motor = torch.randn(batch_size, 16)
+        >>> ev = torch.randn(batch_size, 16)
         >>> point = torch.randn(batch_size, 5)
-        >>> output = layer(motor, point)  # shape: (batch_size, 5)
+        >>> output = layer(ev, point)  # shape: (batch_size, 5)
     """
 
     def __init__(self):
         """Initialize the CGACareLayer."""
         super().__init__()
 
-    def forward(self, motor: Tensor, point: Tensor) -> Tensor:
+    def forward(self, ev: Tensor, point: Tensor) -> Tensor:
         """
-        Apply motor transformation to point via sandwich product.
+        Apply EvenVersor transformation to point via sandwich product.
 
         Args:
-            motor: Motor tensor, shape (..., 16)
+            ev: EvenVersor tensor, shape (..., 16)
                    Layout: [scalar, e12, e13, e1+, e1-, e23, e2+, e2-,
                            e3+, e3-, e+-, e123+, e123-, e12+-, e13+-, e23+-]
             point: UPGC point tensor, shape (..., 5)
@@ -56,11 +56,11 @@ class CGACareLayer(nn.Module):
         original_dtype = point.dtype
 
         # Convert to float32 for stable CGA computation
-        motor_f32 = motor.to(torch.float32)
+        ev_f32 = ev.to(torch.float32)
         point_f32 = point.to(torch.float32)
 
         # Compute sandwich product
-        result = F.sandwich_product_sparse(motor_f32, point_f32)
+        result = F.sandwich_product_sparse(ev_f32, point_f32)
 
         # Convert back to original dtype
         return result.to(original_dtype)
@@ -131,14 +131,14 @@ class CGATransformPipeline(nn.Module):
 
     Combines encoding, transformation, and decoding:
     1. Encode 3D point to UPGC representation
-    2. Apply motor transformation via sandwich product
+    2. Apply EvenVersor transformation via sandwich product
     3. Decode back to 3D point
 
     Example:
         >>> pipeline = CGATransformPipeline()
-        >>> motor = torch.randn(batch_size, 16)
+        >>> ev = torch.randn(batch_size, 16)
         >>> x_3d = torch.randn(batch_size, 3)
-        >>> y_3d = pipeline(motor, x_3d)  # shape: (batch_size, 3)
+        >>> y_3d = pipeline(ev, x_3d)  # shape: (batch_size, 3)
     """
 
     def __init__(self):
@@ -148,17 +148,17 @@ class CGATransformPipeline(nn.Module):
         self.care_layer = CGACareLayer()
         self.decoder = UPGCDecoder()
 
-    def forward(self, motor: Tensor, x: Tensor) -> Tensor:
+    def forward(self, ev: Tensor, x: Tensor) -> Tensor:
         """
-        Apply motor transformation to 3D point.
+        Apply EvenVersor transformation to 3D point.
 
         Args:
-            motor: Motor tensor, shape (..., 16)
+            ev: EvenVersor tensor, shape (..., 16)
             x: 3D point, shape (..., 3)
 
         Returns:
             Transformed 3D point, shape (..., 3)
         """
         point = self.encoder(x)
-        transformed = self.care_layer(motor, point)
+        transformed = self.care_layer(ev, point)
         return self.decoder(transformed)

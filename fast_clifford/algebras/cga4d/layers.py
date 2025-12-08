@@ -8,7 +8,7 @@ Provides CGA4DCareLayer that wraps the sandwich product with:
 
 CGA4D Cl(5,1) specifications:
 - 64 blades total
-- Motor: 31 components (Grade 0 + 2 + 4)
+- EvenVersor: 31 components (Grade 0 + 2 + 4)
 - UPGC Point: 6 components (Grade 1)
 """
 
@@ -24,7 +24,7 @@ class CGA4DCareLayer(nn.Module):
     CGA4D sandwich product layer for point transformation.
 
     Computes M × X × M̃ where:
-    - M is a motor (31 components: Grade 0, 2, 4)
+    - M is an EvenVersor (31 components: Grade 0, 2, 4)
     - X is a UPGC point (6 components: Grade 1)
     - Output is a transformed UPGC point (6 components)
 
@@ -34,21 +34,21 @@ class CGA4DCareLayer(nn.Module):
 
     Example:
         >>> layer = CGA4DCareLayer()
-        >>> motor = torch.randn(batch_size, 31)
+        >>> ev = torch.randn(batch_size, 31)
         >>> point = torch.randn(batch_size, 6)
-        >>> output = layer(motor, point)  # shape: (batch_size, 6)
+        >>> output = layer(ev, point)  # shape: (batch_size, 6)
     """
 
     def __init__(self):
         """Initialize the CGA4DCareLayer."""
         super().__init__()
 
-    def forward(self, motor: Tensor, point: Tensor) -> Tensor:
+    def forward(self, ev: Tensor, point: Tensor) -> Tensor:
         """
-        Apply motor transformation to point via sandwich product.
+        Apply EvenVersor transformation to point via sandwich product.
 
         Args:
-            motor: Motor tensor, shape (..., 31)
+            ev: EvenVersor tensor, shape (..., 31)
                    Layout: [scalar (1), Grade 2 (15), Grade 4 (15)]
             point: UPGC point tensor, shape (..., 6)
                    Layout: [e1, e2, e3, e4, e+, e-]
@@ -60,11 +60,11 @@ class CGA4DCareLayer(nn.Module):
         original_dtype = point.dtype
 
         # Convert to float32 for stable CGA computation
-        motor_f32 = motor.to(torch.float32)
+        ev_f32 = ev.to(torch.float32)
         point_f32 = point.to(torch.float32)
 
         # Compute sandwich product
-        result = F.sandwich_product_sparse(motor_f32, point_f32)
+        result = F.sandwich_product_sparse(ev_f32, point_f32)
 
         # Convert back to original dtype
         return result.to(original_dtype)
@@ -135,14 +135,14 @@ class CGA4DTransformPipeline(nn.Module):
 
     Combines encoding, transformation, and decoding:
     1. Encode 4D point to UPGC representation
-    2. Apply motor transformation via sandwich product
+    2. Apply EvenVersor transformation via sandwich product
     3. Decode back to 4D point
 
     Example:
         >>> pipeline = CGA4DTransformPipeline()
-        >>> motor = torch.randn(batch_size, 31)
+        >>> ev = torch.randn(batch_size, 31)
         >>> x_4d = torch.randn(batch_size, 4)
-        >>> y_4d = pipeline(motor, x_4d)  # shape: (batch_size, 4)
+        >>> y_4d = pipeline(ev, x_4d)  # shape: (batch_size, 4)
     """
 
     def __init__(self):
@@ -152,17 +152,17 @@ class CGA4DTransformPipeline(nn.Module):
         self.care_layer = CGA4DCareLayer()
         self.decoder = UPGC4DDecoder()
 
-    def forward(self, motor: Tensor, x: Tensor) -> Tensor:
+    def forward(self, ev: Tensor, x: Tensor) -> Tensor:
         """
-        Apply motor transformation to 4D point.
+        Apply EvenVersor transformation to 4D point.
 
         Args:
-            motor: Motor tensor, shape (..., 31)
+            ev: EvenVersor tensor, shape (..., 31)
             x: 4D point, shape (..., 4)
 
         Returns:
             Transformed 4D point, shape (..., 4)
         """
         point = self.encoder(x)
-        transformed = self.care_layer(motor, point)
+        transformed = self.care_layer(ev, point)
         return self.decoder(transformed)

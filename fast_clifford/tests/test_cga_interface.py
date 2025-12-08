@@ -121,7 +121,7 @@ class TestCGAAlgebraBaseInterface:
         assert hasattr(cga, 'euclidean_dim')
         assert hasattr(cga, 'blade_count')
         assert hasattr(cga, 'point_count')
-        assert hasattr(cga, 'motor_count')
+        assert hasattr(cga, 'even_versor_count')
         assert hasattr(cga, 'signature')
         assert hasattr(cga, 'clifford_notation')
 
@@ -136,7 +136,7 @@ class TestCGAAlgebraBaseInterface:
         assert callable(cga.geometric_product_full)
         assert callable(cga.sandwich_product_sparse)
         assert callable(cga.reverse_full)
-        assert callable(cga.reverse_motor)
+        assert callable(cga.reverse_even_versor)
 
     @pytest.mark.parametrize("n", [0, 1, 2, 3])
     def test_layer_factory_methods_exist(self, n):
@@ -172,9 +172,9 @@ class TestCGAAlgebraBaseInterface:
         """Test that sandwich_product_sparse produces correct shape."""
         cga = CGA(n)
         batch_size = 8
-        motor = torch.randn(batch_size, cga.motor_count)
+        ev = torch.randn(batch_size, cga.even_versor_count)
         point = torch.randn(batch_size, cga.point_count)
-        result = cga.sandwich_product_sparse(motor, point)
+        result = cga.sandwich_product_sparse(ev, point)
         assert result.shape == (batch_size, cga.point_count)
 
     @pytest.mark.parametrize("n", [1, 2, 3])
@@ -241,10 +241,10 @@ class TestCGAConsistency:
         elif n == 3:
             from fast_clifford.algebras import cga3d as direct
 
-        motor = torch.randn(8, cga.motor_count)
+        ev = torch.randn(8, cga.even_versor_count)
         point = torch.randn(8, cga.point_count)
 
-        unified_result = cga.sandwich_product_sparse(motor, point)
-        direct_result = direct.sandwich_product_sparse(motor, point)
+        unified_result = cga.sandwich_product_sparse(ev, point)
+        direct_result = direct.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(unified_result, direct_result, atol=1e-6)

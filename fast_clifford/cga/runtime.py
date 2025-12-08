@@ -27,7 +27,7 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
         euclidean_dim: Euclidean dimension n
         blade_count: Total blades = 2^(n+2)
         point_count: UPGC point components = n+2
-        motor_count: Motor components (even grades, excluding pseudoscalar)
+        even_versor_count: EvenVersor components (even grades)
     """
 
     def __init__(self, euclidean_dim: int):
@@ -55,9 +55,9 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
         self._result_idx: Optional[Tensor] = None
         self._signs: Optional[Tensor] = None
         self._point_mask: Optional[Tensor] = None
-        self._motor_mask: Optional[Tensor] = None
+        self._even_versor_mask: Optional[Tensor] = None
         self._reverse_signs: Optional[Tensor] = None
-        self._motor_reverse_signs: Optional[Tensor] = None
+        self._even_versor_reverse_signs: Optional[Tensor] = None
 
     def _ensure_initialized(self) -> None:
         """
@@ -74,7 +74,7 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
             create_cga_algebra,
             compute_grade_indices,
             compute_reverse_signs,
-            get_motor_indices,
+            get_even_versor_indices,
         )
 
         # Get algebra from clifford library
@@ -114,18 +114,18 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
         point_indices = list(grade_indices[1])
         self.register_buffer('point_mask', torch.tensor(point_indices, dtype=torch.long))
 
-        # Motor mask (even grades, excluding pseudoscalar)
-        motor_indices = list(get_motor_indices(self._euclidean_dim))
-        self._motor_count = len(motor_indices)
-        self.register_buffer('motor_mask', torch.tensor(motor_indices, dtype=torch.long))
+        # EvenVersor mask (even grades)
+        ev_indices = list(get_even_versor_indices(self._euclidean_dim))
+        self._even_versor_count = len(ev_indices)
+        self.register_buffer('even_versor_mask', torch.tensor(ev_indices, dtype=torch.long))
 
         # Reverse signs
         reverse_signs = compute_reverse_signs(self._euclidean_dim)
         self.register_buffer('reverse_signs', torch.tensor(reverse_signs, dtype=torch.float32))
 
-        # Motor reverse signs
-        motor_reverse_signs = [reverse_signs[idx] for idx in motor_indices]
-        self.register_buffer('motor_reverse_signs', torch.tensor(motor_reverse_signs, dtype=torch.float32))
+        # EvenVersor reverse signs
+        even_versor_reverse_signs = [reverse_signs[idx] for idx in ev_indices]
+        self.register_buffer('even_versor_reverse_signs', torch.tensor(even_versor_reverse_signs, dtype=torch.float32))
 
         self._initialized = True
 
@@ -146,13 +146,28 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
         return self._point_count
 
     @property
-    def motor_count(self) -> int:
+    def even_versor_count(self) -> int:
         self._ensure_initialized()
-        return self._motor_count
+        return self._even_versor_count
 
     @property
     def signature(self) -> Tuple[int, ...]:
         return self._signature
+
+    @property
+    def bivector_count(self) -> int:
+        """Number of Bivector components (Grade 2)."""
+        self._ensure_initialized()
+        if not hasattr(self, '_bivector_count'):
+            from fast_clifford.codegen.cga_factory import compute_grade_indices
+            grade_indices = compute_grade_indices(self._euclidean_dim)
+            self._bivector_count = len(grade_indices[2])
+        return self._bivector_count
+
+    @property
+    def max_grade(self) -> int:
+        """Maximum grade in the algebra (= n+2 for CGA(n))."""
+        return self._euclidean_dim + 2
 
     # =========================================================================
     # Core Operations
@@ -233,18 +248,18 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
 
         return result
 
-    def sandwich_product_sparse(self, motor: Tensor, point: Tensor) -> Tensor:
+    def sandwich_product_sparse(self, ev: Tensor, point: Tensor) -> Tensor:
         """
         Compute sparse sandwich product M x X x M~.
 
         Strategy:
-        1. Embed motor and point into full multivector space
+        1. Embed EvenVersor and point into full multivector space
         2. Compute M x X using geometric product
         3. Compute (M x X) x M~ using geometric product
         4. Extract point components from result
 
         Args:
-            motor: Motor, shape (..., motor_count)
+            ev: EvenVersor, shape (..., even_versor_count)
             point: UPGC point, shape (..., point_count)
 
         Returns:
@@ -252,32 +267,32 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
         """
         self._ensure_initialized()
 
-        batch_shape = motor.shape[:-1]
-        device = motor.device
-        dtype = motor.dtype
+        batch_shape = ev.shape[:-1]
+        device = ev.device
+        dtype = ev.dtype
 
-        # Embed motor into full space
-        motor_full = torch.zeros(*batch_shape, self._blade_count, device=device, dtype=dtype)
-        motor_mask_expanded = self.motor_mask.expand(*batch_shape, -1)
-        motor_full.scatter_(-1, motor_mask_expanded, motor)
+        # Embed EvenVersor into full space
+        ev_full = torch.zeros(*batch_shape, self._blade_count, device=device, dtype=dtype)
+        even_versor_mask_expanded = self.even_versor_mask.expand(*batch_shape, -1)
+        ev_full.scatter_(-1, even_versor_mask_expanded, ev)
 
         # Embed point into full space
         point_full = torch.zeros(*batch_shape, self._blade_count, device=device, dtype=dtype)
         point_mask_expanded = self.point_mask.expand(*batch_shape, -1)
         point_full.scatter_(-1, point_mask_expanded, point)
 
-        # Compute motor reverse
-        motor_rev = motor * self.motor_reverse_signs
+        # Compute EvenVersor reverse
+        ev_rev = ev * self.even_versor_reverse_signs
 
-        # Embed reversed motor
-        motor_rev_full = torch.zeros(*batch_shape, self._blade_count, device=device, dtype=dtype)
-        motor_rev_full.scatter_(-1, motor_mask_expanded, motor_rev)
+        # Embed reversed EvenVersor
+        ev_rev_full = torch.zeros(*batch_shape, self._blade_count, device=device, dtype=dtype)
+        ev_rev_full.scatter_(-1, even_versor_mask_expanded, ev_rev)
 
         # Compute M x X
-        mx = self.geometric_product_full(motor_full, point_full)
+        mx = self.geometric_product_full(ev_full, point_full)
 
         # Compute (M x X) x M~
-        result_full = self.geometric_product_full(mx, motor_rev_full)
+        result_full = self.geometric_product_full(mx, ev_rev_full)
 
         # Extract point components
         result = result_full.gather(-1, point_mask_expanded)
@@ -297,122 +312,334 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
         self._ensure_initialized()
         return mv * self.reverse_signs
 
-    def reverse_motor(self, motor: Tensor) -> Tensor:
+    def reverse_even_versor(self, ev: Tensor) -> Tensor:
         """
-        Compute reverse of a motor.
+        Compute reverse of an EvenVersor.
 
         Args:
-            motor: Motor, shape (..., motor_count)
+            ev: EvenVersor, shape (..., even_versor_count)
 
         Returns:
-            Reversed motor, shape (..., motor_count)
+            Reversed EvenVersor, shape (..., even_versor_count)
         """
         self._ensure_initialized()
-        return motor * self.motor_reverse_signs
+        return ev * self.even_versor_reverse_signs
 
-    def forward(self, motor: Tensor, point: Tensor) -> Tensor:
+    def forward(self, ev: Tensor, point: Tensor) -> Tensor:
         """
         Forward pass (sandwich product).
 
         Can be used directly as nn.Module.
 
         Args:
-            motor: Motor, shape (..., motor_count)
+            ev: EvenVersor, shape (..., even_versor_count)
             point: UPGC point, shape (..., point_count)
 
         Returns:
             Transformed point, shape (..., point_count)
         """
-        return self.sandwich_product_sparse(motor, point)
+        return self.sandwich_product_sparse(ev, point)
 
     # =========================================================================
-    # Layer Factory Methods
+    # Extended Operations
+    # =========================================================================
+
+    def _embed_ev(self, ev: Tensor) -> Tensor:
+        """Embed EvenVersor into full multivector space."""
+        self._ensure_initialized()
+        batch_shape = ev.shape[:-1]
+        ev_full = torch.zeros(*batch_shape, self._blade_count, device=ev.device, dtype=ev.dtype)
+        even_versor_mask_expanded = self.even_versor_mask.expand(*batch_shape, -1)
+        ev_full.scatter_(-1, even_versor_mask_expanded, ev)
+        return ev_full
+
+    def _extract_ev(self, mv_full: Tensor) -> Tensor:
+        """Extract EvenVersor from full multivector."""
+        self._ensure_initialized()
+        batch_shape = mv_full.shape[:-1]
+        even_versor_mask_expanded = self.even_versor_mask.expand(*batch_shape, -1)
+        return mv_full.gather(-1, even_versor_mask_expanded)
+
+    def compose_even_versor(self, v1: Tensor, v2: Tensor) -> Tensor:
+        """Compose two EvenVersors via geometric product."""
+        v1_full = self._embed_ev(v1)
+        v2_full = self._embed_ev(v2)
+        result_full = self.geometric_product_full(v1_full, v2_full)
+        return self._extract_ev(result_full)
+
+    def compose_similitude(self, s1: Tensor, s2: Tensor) -> Tensor:
+        """Compose two Similitudes (uses same method as EvenVersor)."""
+        return self.compose_even_versor(s1, s2)
+
+    def sandwich_product_even_versor(self, versor: Tensor, point: Tensor) -> Tensor:
+        """Compute sandwich product V x X x ~V for EvenVersor."""
+        return self.sandwich_product_sparse(versor, point)
+
+    def sandwich_product_similitude(self, similitude: Tensor, point: Tensor) -> Tensor:
+        """Compute sandwich product S x X x ~S for Similitude."""
+        return self.sandwich_product_sparse(similitude, point)
+
+    def inner_product(self, a: Tensor, b: Tensor) -> Tensor:
+        """Compute geometric inner product (metric inner product)."""
+        result_full = self.geometric_product_full(a, b)
+        return result_full[..., 0:1]  # Grade 0 (scalar)
+
+    def outer_product(self, a: Tensor, b: Tensor) -> Tensor:
+        """
+        Compute outer product (wedge product).
+
+        The outer product keeps terms where:
+        <a ^ b>_k = sum over (r,s) of <a_r * b_s>_k where k = r + s
+
+        For grade-r blade wedged with grade-s blade, result is grade (r+s).
+        """
+        self._ensure_initialized()
+        from fast_clifford.codegen.cga_factory import compute_grade_indices
+
+        grade_indices = compute_grade_indices(self._euclidean_dim)
+        max_grade = self._euclidean_dim + 2
+
+        # Initialize result
+        result = torch.zeros_like(a)
+
+        # For each pair of grades (r, s), compute a_r * b_s and extract grade (r+s)
+        for r in range(max_grade + 1):
+            if r not in grade_indices:
+                continue
+            # Extract grade-r part of a
+            a_r = self.grade_select(a, r)
+
+            for s in range(max_grade + 1):
+                if s not in grade_indices:
+                    continue
+                k = r + s  # Result grade
+                if k > max_grade or k not in grade_indices:
+                    continue
+
+                # Extract grade-s part of b
+                b_s = self.grade_select(b, s)
+
+                # Compute geometric product
+                prod = self.geometric_product_full(a_r, b_s)
+
+                # Extract and add grade-k part
+                prod_k = self.grade_select(prod, k)
+                result = result + prod_k
+
+        return result
+
+    def left_contraction(self, a: Tensor, b: Tensor) -> Tensor:
+        """
+        Compute left contraction a ⌋ b.
+
+        The left contraction keeps terms where:
+        <a ⌋ b>_k = sum over (r,s) of <a_r * b_s>_k where k = s - r >= 0
+
+        For grade-r blade contracted with grade-s blade, result is grade (s-r).
+        """
+        self._ensure_initialized()
+        from fast_clifford.codegen.cga_factory import compute_grade_indices
+
+        grade_indices = compute_grade_indices(self._euclidean_dim)
+        max_grade = self._euclidean_dim + 2
+
+        # Initialize result
+        result = torch.zeros_like(a)
+
+        # For each pair of grades (r, s), compute a_r * b_s and extract grade (s-r)
+        for r in range(max_grade + 1):
+            if r not in grade_indices:
+                continue
+            # Extract grade-r part of a
+            a_r = self.grade_select(a, r)
+
+            for s in range(max_grade + 1):
+                if s not in grade_indices:
+                    continue
+                k = s - r  # Result grade
+                if k < 0 or k > max_grade or k not in grade_indices:
+                    continue
+
+                # Extract grade-s part of b
+                b_s = self.grade_select(b, s)
+
+                # Compute geometric product
+                prod = self.geometric_product_full(a_r, b_s)
+
+                # Extract and add grade-k part
+                prod_k = self.grade_select(prod, k)
+                result = result + prod_k
+
+        return result
+
+    def right_contraction(self, a: Tensor, b: Tensor) -> Tensor:
+        """
+        Compute right contraction a ⌊ b.
+
+        The right contraction keeps terms where:
+        <a ⌊ b>_k = sum over (r,s) of <a_r * b_s>_k where k = r - s >= 0
+
+        For grade-r blade contracted with grade-s blade, result is grade (r-s).
+        """
+        self._ensure_initialized()
+        from fast_clifford.codegen.cga_factory import compute_grade_indices
+
+        grade_indices = compute_grade_indices(self._euclidean_dim)
+        max_grade = self._euclidean_dim + 2
+
+        # Initialize result
+        result = torch.zeros_like(a)
+
+        # For each pair of grades (r, s), compute a_r * b_s and extract grade (r-s)
+        for r in range(max_grade + 1):
+            if r not in grade_indices:
+                continue
+            # Extract grade-r part of a
+            a_r = self.grade_select(a, r)
+
+            for s in range(max_grade + 1):
+                if s not in grade_indices:
+                    continue
+                k = r - s  # Result grade
+                if k < 0 or k > max_grade or k not in grade_indices:
+                    continue
+
+                # Extract grade-s part of b
+                b_s = self.grade_select(b, s)
+
+                # Compute geometric product
+                prod = self.geometric_product_full(a_r, b_s)
+
+                # Extract and add grade-k part
+                prod_k = self.grade_select(prod, k)
+                result = result + prod_k
+
+        return result
+
+    def exp_bivector(self, B: Tensor) -> Tensor:
+        """
+        Compute exponential map from Bivector to EvenVersor.
+
+        exp(B) = cos(theta) + sin(theta)/theta * B
+        where theta^2 = -B^2
+        """
+        self._ensure_initialized()
+
+        # Embed bivector into full space
+        from fast_clifford.codegen.cga_factory import compute_grade_indices
+        grade_indices = compute_grade_indices(self._euclidean_dim)
+        bivector_indices = list(grade_indices[2])
+
+        batch_shape = B.shape[:-1]
+        B_full = torch.zeros(*batch_shape, self._blade_count, device=B.device, dtype=B.dtype)
+        biv_mask = torch.tensor(bivector_indices, dtype=torch.long, device=B.device)
+        biv_mask_expanded = biv_mask.expand(*batch_shape, -1)
+        B_full.scatter_(-1, biv_mask_expanded, B)
+
+        # Compute B^2 (scalar part)
+        B_sq_full = self.geometric_product_full(B_full, B_full)
+        B_sq_scalar = B_sq_full[..., 0]  # Grade 0
+
+        # theta^2 = -B^2, theta = sqrt(max(0, -B^2))
+        theta_sq = torch.clamp(-B_sq_scalar, min=1e-12)
+        theta = torch.sqrt(theta_sq)
+
+        # Compute cos(theta) and sinc(theta) = sin(theta)/theta
+        cos_theta = torch.cos(theta)
+        sinc_theta = torch.sinc(theta / torch.pi)  # sinc(x) = sin(pi*x)/(pi*x)
+
+        # Result = cos(theta) * 1 + sinc(theta) * theta / theta * B
+        # = cos(theta) + sinc(theta) * B (since sinc already divides by theta)
+        # Actually: sin(theta)/theta * B, and sinc(x) = sin(pi*x)/(pi*x)
+        # So we need: sin(theta)/theta = sinc(theta/pi) * pi / theta * theta = sinc(theta/pi)
+        # Wait, that's wrong. Let me reconsider.
+        # sinc(x) = sin(pi*x)/(pi*x), so sin(theta)/theta = sinc(theta/pi)
+
+        result_full = cos_theta.unsqueeze(-1) * torch.eye(1, self._blade_count, device=B.device, dtype=B.dtype).expand(*batch_shape, -1)
+        result_full = result_full.clone()
+        result_full[..., 0] = cos_theta
+        result_full = result_full + sinc_theta.unsqueeze(-1) * B_full
+
+        return self._extract_ev(result_full)
+
+    def grade_select(self, mv: Tensor, grade: int) -> Tensor:
+        """
+        Extract components of a specific grade.
+
+        Returns a full multivector with only the specified grade components,
+        other components set to zero.
+
+        Args:
+            mv: Multivector, shape (..., blade_count)
+            grade: Grade to extract (0 to max_grade)
+
+        Returns:
+            Multivector with only grade-k components, shape (..., blade_count)
+        """
+        self._ensure_initialized()
+        from fast_clifford.codegen.cga_factory import compute_grade_indices
+
+        grade_indices = compute_grade_indices(self._euclidean_dim)
+
+        # Create mask for the specified grade
+        mask = torch.zeros(self._blade_count, device=mv.device, dtype=mv.dtype)
+        if grade in grade_indices:
+            for idx in grade_indices[grade]:
+                mask[idx] = 1.0
+
+        return mv * mask
+
+    def dual(self, mv: Tensor) -> Tensor:
+        """Compute the dual of a multivector."""
+        self._ensure_initialized()
+        # Dual is computed as mv * I^-1 where I is the pseudoscalar
+        # For CGA(n), I = e1 ^ e2 ^ ... ^ en ^ e+ ^ e-
+        # I^-1 = (-1)^k * I where k depends on the algebra
+        # For simplicity, we compute I and use geometric product
+        I_full = torch.zeros(self._blade_count, device=mv.device, dtype=mv.dtype)
+        I_full[-1] = 1.0  # Pseudoscalar is always the last blade
+        I_full = I_full.expand(*mv.shape[:-1], -1)
+        return self.geometric_product_full(mv, I_full)
+
+    def normalize(self, mv: Tensor) -> Tensor:
+        """Normalize a multivector to unit norm."""
+        norm_sq = self.inner_product(mv, mv)
+        norm = torch.sqrt(torch.clamp(norm_sq.abs(), min=1e-12))
+        return mv / norm
+
+    def structure_normalize(self, similitude: Tensor, eps: float = 1e-8) -> Tensor:
+        """Structure normalize a Similitude (returns input for runtime, not implemented)."""
+        # Structure normalization is complex and specific to similitude structure
+        # For runtime, just return the input as-is
+        return similitude
+
+    # =========================================================================
+    # Layer Factory Methods (using unified layers)
     # =========================================================================
 
     def get_care_layer(self) -> nn.Module:
-        """Get RuntimeCGACareLayer."""
-        return RuntimeCGACareLayer(self)
+        """Get CliffordTransformLayer for this algebra."""
+        from .layers import CliffordTransformLayer
+        return CliffordTransformLayer(self)
+
+    def get_transform_layer(self) -> nn.Module:
+        """Get CliffordTransformLayer (alias for get_care_layer)."""
+        return self.get_care_layer()
 
     def get_encoder(self) -> nn.Module:
-        """Get RuntimeUPGCEncoder."""
-        return RuntimeUPGCEncoder(self)
+        """Get CGAEncoder for this algebra."""
+        from .layers import CGAEncoder
+        return CGAEncoder(self)
 
     def get_decoder(self) -> nn.Module:
-        """Get RuntimeUPGCDecoder."""
-        return RuntimeUPGCDecoder(self)
+        """Get CGADecoder for this algebra."""
+        from .layers import CGADecoder
+        return CGADecoder(self)
 
     def get_transform_pipeline(self) -> nn.Module:
-        """Get RuntimeCGATransformPipeline."""
-        return RuntimeCGATransformPipeline(self)
-
-
-# =============================================================================
-# Runtime Layer Classes
-# =============================================================================
-
-class RuntimeCGACareLayer(nn.Module):
-    """Runtime CGA Care Layer for sandwich product."""
-
-    def __init__(self, algebra: RuntimeCGAAlgebra):
-        super().__init__()
-        self.algebra = algebra
-
-    def forward(self, motor: Tensor, point: Tensor) -> Tensor:
-        original_dtype = point.dtype
-        motor_f32 = motor.to(torch.float32)
-        point_f32 = point.to(torch.float32)
-        result = self.algebra.sandwich_product_sparse(motor_f32, point_f32)
-        return result.to(original_dtype)
-
-
-class RuntimeUPGCEncoder(nn.Module):
-    """Runtime UPGC Encoder."""
-
-    def __init__(self, algebra: RuntimeCGAAlgebra):
-        super().__init__()
-        self.algebra = algebra
-
-    def forward(self, x: Tensor) -> Tensor:
-        original_dtype = x.dtype
-        x_f32 = x.to(torch.float32)
-        result = self.algebra.upgc_encode(x_f32)
-        return result.to(original_dtype)
-
-
-class RuntimeUPGCDecoder(nn.Module):
-    """Runtime UPGC Decoder."""
-
-    def __init__(self, algebra: RuntimeCGAAlgebra):
-        super().__init__()
-        self.algebra = algebra
-
-    def forward(self, point: Tensor) -> Tensor:
-        return self.algebra.upgc_decode(point)
-
-
-class RuntimeCGATransformPipeline(nn.Module):
-    """Runtime CGA complete transform pipeline."""
-
-    def __init__(self, algebra: RuntimeCGAAlgebra):
-        super().__init__()
-        self.encoder = RuntimeUPGCEncoder(algebra)
-        self.care_layer = RuntimeCGACareLayer(algebra)
-        self.decoder = RuntimeUPGCDecoder(algebra)
-
-    def forward(self, motor: Tensor, x: Tensor) -> Tensor:
-        """
-        Complete transform: encode -> sandwich -> decode
-
-        Args:
-            motor: Motor, shape (..., motor_count)
-            x: Euclidean coordinates, shape (..., n)
-
-        Returns:
-            Transformed Euclidean coordinates, shape (..., n)
-        """
-        point = self.encoder(x)
-        transformed = self.care_layer(motor, point)
-        return self.decoder(transformed)
+        """Get CGAPipeline for this algebra."""
+        from .layers import CGAPipeline
+        return CGAPipeline(self)
 
 
 # =============================================================================

@@ -159,6 +159,18 @@ cga = Cl(p, q, r=0)  # Cl(n+1, 1) for CGA(n)
 - `get_decoder()` - Get UPGC decoder module
 - `get_transform_pipeline()` - Get complete pipeline
 
+**Extended Operations (Feature 005):**
+- `compose(v1, v2, versor_type)` - EvenVersor/Similitude composition
+- `sandwich_product(versor, mv, versor_type)` - Versor transformation
+- `inner_product(a, b)` - Scalar product `<a*b>_0`
+- `outer_product(a, b)` - Wedge product `a ∧ b`
+- `left_contraction(a, b)` - Left contraction `a ⌋ b`
+- `right_contraction(a, b)` - Right contraction `a ⌊ b`
+- `grade_select(mv, k)` - Extract grade-k component
+- `dual(mv)` - Poincare duality
+- `normalize(mv)` - Unit normalization
+- `exp_bivector(B)` - Bivector exponential map `exp(B)`
+
 ### Direct Module Access
 
 Each algebra module (`cga0d`, `cga1d`, `cga2d`, `cga3d`, `cga4d`, `cga5d`) provides:
@@ -170,6 +182,19 @@ Each algebra module (`cga0d`, `cga1d`, `cga2d`, `cga3d`, `cga4d`, `cga5d`) provi
 - `upgc_decode(point)` - UPGC to Euclidean point
 - `reverse_full(mv)` - Multivector reverse
 - `reverse_motor(motor)` - Motor reverse
+
+**Extended Operations:**
+- `compose_even_versor(v1, v2)` - EvenVersor composition
+- `compose_similitude(s1, s2)` - Similitude composition (faster)
+- `sandwich_product_similitude(s, point)` - Similitude transformation
+- `inner_product_full(a, b)` - Scalar product
+- `outer_product_full(a, b)` - Wedge product
+- `left_contraction_full(a, b)` - Left contraction
+- `right_contraction_full(a, b)` - Right contraction
+- `grade_select(mv, k)` - Extract grade-k component
+- `dual(mv)` - Poincare duality
+- `normalize(mv)` - Unit normalization
+- `exp_bivector(B)` - Bivector exponential map
 
 **PyTorch Layers:**
 - `CGAxDCareLayer` - Sandwich product layer with precision handling

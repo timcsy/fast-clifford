@@ -73,8 +73,8 @@ class HardcodedCGAWrapper(CGAAlgebraBase):
         return len(self._module.UPGC_POINT_MASK)
 
     @property
-    def motor_count(self) -> int:
-        return len(self._module.MOTOR_MASK)
+    def even_versor_count(self) -> int:
+        return len(self._module.EVEN_VERSOR_MASK)
 
     @property
     def signature(self) -> Tuple[int, ...]:
@@ -95,83 +95,115 @@ class HardcodedCGAWrapper(CGAAlgebraBase):
     def geometric_product_full(self, a: Tensor, b: Tensor) -> Tensor:
         return self._module.geometric_product_full(a, b)
 
-    def sandwich_product_sparse(self, motor: Tensor, point: Tensor) -> Tensor:
-        return self._module.sandwich_product_sparse(motor, point)
+    def sandwich_product_sparse(self, ev: Tensor, point: Tensor) -> Tensor:
+        return self._module.sandwich_product_sparse(ev, point)
 
     def reverse_full(self, mv: Tensor) -> Tensor:
         return self._module.reverse_full(mv)
 
-    def reverse_motor(self, motor: Tensor) -> Tensor:
-        return self._module.reverse_motor(motor)
+    def reverse_even_versor(self, ev: Tensor) -> Tensor:
+        return self._module.reverse_even_versor(ev)
 
     # =========================================================================
-    # Layer Factory Methods
+    # Layer Factory Methods (using unified layers)
     # =========================================================================
 
     def get_care_layer(self) -> nn.Module:
-        """Get CareLayer for this dimension."""
-        dim = self._euclidean_dim
-        if dim == 0:
-            return self._module.CGA0DCareLayer()
-        elif dim == 1:
-            return self._module.CGA1DCareLayer()
-        elif dim == 2:
-            return self._module.CGA2DCareLayer()
-        elif dim == 3:
-            # cga3d uses old naming convention (CGACareLayer instead of CGA3DCareLayer)
-            return self._module.CGACareLayer()
-        elif dim == 4:
-            return self._module.CGA4DCareLayer()
-        elif dim == 5:
-            return self._module.CGA5DCareLayer()
+        """Get CareLayer (CliffordTransformLayer) for this dimension."""
+        from .layers import CliffordTransformLayer
+        return CliffordTransformLayer(self)
+
+    def get_transform_layer(self) -> nn.Module:
+        """Get CliffordTransformLayer for this dimension (alias for get_care_layer)."""
+        return self.get_care_layer()
 
     def get_encoder(self) -> nn.Module:
-        """Get UPGC encoder for this dimension."""
-        dim = self._euclidean_dim
-        if dim == 0:
-            return self._module.UPGC0DEncoder()
-        elif dim == 1:
-            return self._module.UPGC1DEncoder()
-        elif dim == 2:
-            return self._module.UPGC2DEncoder()
-        elif dim == 3:
-            # cga3d uses old naming convention (UPGCEncoder instead of UPGC3DEncoder)
-            return self._module.UPGCEncoder()
-        elif dim == 4:
-            return self._module.UPGC4DEncoder()
-        elif dim == 5:
-            return self._module.UPGC5DEncoder()
+        """Get CGAEncoder for this dimension."""
+        from .layers import CGAEncoder
+        return CGAEncoder(self)
 
     def get_decoder(self) -> nn.Module:
-        """Get UPGC decoder for this dimension."""
-        dim = self._euclidean_dim
-        if dim == 0:
-            return self._module.UPGC0DDecoder()
-        elif dim == 1:
-            return self._module.UPGC1DDecoder()
-        elif dim == 2:
-            return self._module.UPGC2DDecoder()
-        elif dim == 3:
-            # cga3d uses old naming convention (UPGCDecoder instead of UPGC3DDecoder)
-            return self._module.UPGCDecoder()
-        elif dim == 4:
-            return self._module.UPGC4DDecoder()
-        elif dim == 5:
-            return self._module.UPGC5DDecoder()
+        """Get CGADecoder for this dimension."""
+        from .layers import CGADecoder
+        return CGADecoder(self)
 
     def get_transform_pipeline(self) -> nn.Module:
         """Get complete transform pipeline for this dimension."""
-        dim = self._euclidean_dim
-        if dim == 0:
-            return self._module.CGA0DTransformPipeline()
-        elif dim == 1:
-            return self._module.CGA1DTransformPipeline()
-        elif dim == 2:
-            return self._module.CGA2DTransformPipeline()
-        elif dim == 3:
-            # cga3d uses old naming convention (CGATransformPipeline instead of CGA3DTransformPipeline)
-            return self._module.CGATransformPipeline()
-        elif dim == 4:
-            return self._module.CGA4DTransformPipeline()
-        elif dim == 5:
-            return self._module.CGA5DTransformPipeline()
+        from .layers import CGAPipeline
+        return CGAPipeline(self)
+
+    # =========================================================================
+    # Extended Properties
+    # =========================================================================
+
+    @property
+    def bivector_count(self) -> int:
+        """Number of Bivector components (Grade 2)."""
+        return len(self._module.GRADE_2_INDICES)
+
+    @property
+    def max_grade(self) -> int:
+        """Maximum grade in the algebra (= n+2 for CGA(n))."""
+        return self._euclidean_dim + 2
+
+    # =========================================================================
+    # Extended Operations
+    # =========================================================================
+
+    def compose_even_versor(self, v1: Tensor, v2: Tensor) -> Tensor:
+        """Compose two EvenVersors via geometric product."""
+        return self._module.functional.compose_even_versor(v1, v2)
+
+    def compose_similitude(self, s1: Tensor, s2: Tensor) -> Tensor:
+        """Compose two Similitudes via optimized geometric product."""
+        return self._module.functional.compose_similitude(s1, s2)
+
+    def sandwich_product_even_versor(self, versor: Tensor, point: Tensor) -> Tensor:
+        """Compute sandwich product V x X x ~V for EvenVersor."""
+        # Use the existing sparse sandwich product
+        return self._module.sandwich_product_sparse(versor, point)
+
+    def sandwich_product_similitude(self, similitude: Tensor, point: Tensor) -> Tensor:
+        """Compute sandwich product S x X x ~S for Similitude."""
+        return self._module.functional.sandwich_product_similitude(similitude, point)
+
+    def inner_product(self, a: Tensor, b: Tensor) -> Tensor:
+        """Compute geometric inner product (metric inner product)."""
+        return self._module.functional.inner_product_full(a, b)
+
+    def outer_product(self, a: Tensor, b: Tensor) -> Tensor:
+        """Compute outer product (wedge product)."""
+        return self._module.functional.outer_product_full(a, b)
+
+    def left_contraction(self, a: Tensor, b: Tensor) -> Tensor:
+        """Compute left contraction."""
+        return self._module.functional.left_contraction_full(a, b)
+
+    def right_contraction(self, a: Tensor, b: Tensor) -> Tensor:
+        """Compute right contraction."""
+        return self._module.functional.right_contraction_full(a, b)
+
+    def exp_bivector(self, B: Tensor) -> Tensor:
+        """Compute exponential map from Bivector to EvenVersor."""
+        return self._module.functional.exp_bivector(B)
+
+    def grade_select(self, mv: Tensor, grade: int) -> Tensor:
+        """Extract components of a specific grade."""
+        return self._module.functional.grade_select(mv, grade)
+
+    def dual(self, mv: Tensor) -> Tensor:
+        """Compute the dual of a multivector."""
+        return self._module.functional.dual(mv)
+
+    def normalize(self, mv: Tensor) -> Tensor:
+        """Normalize a multivector to unit norm."""
+        return self._module.functional.normalize(mv)
+
+    def structure_normalize(self, similitude: Tensor, eps: float = 1e-8) -> Tensor:
+        """Structure normalize a Similitude to maintain geometric constraints."""
+        # Check if the module has structure_normalize
+        if hasattr(self._module.functional, 'structure_normalize'):
+            return self._module.functional.structure_normalize(similitude, eps)
+        else:
+            # Fallback: just return the input (no structure normalization available)
+            return similitude

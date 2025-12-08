@@ -172,6 +172,26 @@ exp(B) = cos(θ) + sin(θ)/θ × B
 | CGA4D | 15 | 32 |
 | CGA5D | 21 | 64 |
 
+### ⚠️ 限制：僅支援純旋轉 Bivector
+
+**當前實作限制**:
+目前的 `exp_bivector` 實作使用 `exp(B) = cos(θ) + sinc(θ) × B` 公式，
+只適用於**純旋轉 bivector**（即 B² < 0 的情況）。
+
+**一般 CGA Bivector 問題**:
+對於包含平移 (e₀∧eᵢ, e∞∧eᵢ) 或縮放 (e₀∧e∞) 分量的 bivector：
+- B² 可能為正數、負數或零
+- 簡單的 `cos(θ) + sinc(θ)B` 公式不適用
+
+**未來改進方向** (待辦):
+1. **分解方法**: 將 bivector 分解為交換子群組（旋轉、平移、縮放）
+2. **BCH 公式**: 使用 Baker-Campbell-Hausdorff 公式組合指數
+3. **泰勒級數**: 直接展開（但可能不 ONNX 友好）
+
+**參考文獻**:
+- Dorst, L., "Geometric Algebra for Computer Science", Chapter 13
+- Wareham, R., "Applications of Conformal Geometric Algebra", PhD Thesis
+
 ---
 
 ## 6. 統一 API 與靜態路由

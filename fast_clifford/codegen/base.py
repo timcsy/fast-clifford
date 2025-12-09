@@ -110,7 +110,7 @@ class SparsityPattern:
         Create a sparsity pattern.
 
         Args:
-            name: Human-readable name (e.g., 'upgc_point', 'motor')
+            name: Human-readable name (e.g., 'point', 'even_versor')
             nonzero_indices: Tuple of blade indices that may be non-zero
             blade_count: Total number of blades in the algebra
         """

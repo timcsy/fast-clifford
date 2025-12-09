@@ -170,11 +170,11 @@ def get_product_table(euclidean_dim: int) -> Dict[Tuple[int, int], Tuple[int, in
     return table
 
 
-def get_upgc_point_indices(euclidean_dim: int) -> Tuple[int, ...]:
+def get_point_indices(euclidean_dim: int) -> Tuple[int, ...]:
     """
-    取得 UPGC Point 的非零 blade 索引。
+    取得 CGA Point 的非零 blade 索引。
 
-    UPGC Point 只有 Grade 1 分量。
+    CGA Point 只有 Grade 1 分量。
 
     Args:
         euclidean_dim: 歐幾里得空間維度
@@ -186,38 +186,35 @@ def get_upgc_point_indices(euclidean_dim: int) -> Tuple[int, ...]:
     return grade_indices[1]
 
 
-def get_motor_indices(euclidean_dim: int) -> Tuple[int, ...]:
+def get_even_versor_indices(euclidean_dim: int) -> Tuple[int, ...]:
     """
-    取得 Motor 的非零 blade 索引。
+    取得 EvenVersor 的非零 blade 索引。
 
-    Motor 包含偶數 grade 分量，但必須排除 pseudoscalar（最高 grade）。
-    當最高 grade 是偶數時，該 grade 是 pseudoscalar，必須排除。
+    EvenVersor 包含所有偶數 grade 分量（包括 pseudoscalar，若其為偶數 grade）。
+    這是因為 CGA 的 EvenVersor（包含旋轉、平移、縮放）在組合時會產生 pseudoscalar 分量。
 
-    - CGA1D (n=3): Grade 0, 2 (4 分量) - G3 是奇數，不影響
-    - CGA2D (n=4): Grade 0, 2 (7 分量) - G4 是 pseudoscalar，排除
-    - CGA3D (n=5): Grade 0, 2, 4 (16 分量) - G5 是奇數，不影響
-    - CGA4D (n=6): Grade 0, 2, 4 (31 分量) - G6 是 pseudoscalar，排除
-    - CGA5D (n=7): Grade 0, 2, 4, 6 (64 分量) - G7 是奇數，不影響
-    - CGA6D (n=8): Grade 0, 2, 4, 6 (127 分量) - G8 是 pseudoscalar，排除
-    - CGA7D (n=9): Grade 0, 2, 4, 6, 8 (256 分量) - G9 是奇數，不影響
-    - ...
+    - CGA0D (n=2): Grade 0, 2 (2 分量)
+    - CGA1D (n=3): Grade 0, 2 (4 分量)
+    - CGA2D (n=4): Grade 0, 2, 4 (8 分量) - 包含 pseudoscalar
+    - CGA3D (n=5): Grade 0, 2, 4 (16 分量)
+    - CGA4D (n=6): Grade 0, 2, 4, 6 (32 分量) - 包含 pseudoscalar
+    - CGA5D (n=7): Grade 0, 2, 4, 6 (64 分量)
+    - CGA6D (n=8): Grade 0, 2, 4, 6, 8 (128 分量) - 包含 pseudoscalar
+    - CGA7D (n=9): Grade 0, 2, 4, 6, 8 (256 分量)
 
     Args:
         euclidean_dim: 歐幾里得空間維度
 
     Returns:
-        Motor 的 blade 索引
+        EvenVersor 的 blade 索引
     """
     grade_indices = compute_grade_indices(euclidean_dim)
     total_dim = euclidean_dim + 2
-    max_grade = total_dim  # CGA 代數的最高 grade = pseudoscalar
 
-    indices = list(grade_indices[0])  # Grade 0
-    indices.extend(grade_indices[2])  # Grade 2
-
-    # 對於每個偶數 grade，只有當它不是 pseudoscalar 時才加入
-    for grade in range(4, max_grade + 1, 2):
-        if grade in grade_indices and grade != max_grade:
+    indices = []
+    # 包含所有偶數 grade（包括 pseudoscalar）
+    for grade in range(0, total_dim + 1, 2):
+        if grade in grade_indices:
             indices.extend(grade_indices[grade])
 
     return tuple(sorted(indices))
@@ -330,11 +327,11 @@ if __name__ == "__main__":
         grade_indices = compute_grade_indices(dim)
         print(f"Grade indices: {grade_indices}")
 
-        upgc_indices = get_upgc_point_indices(dim)
-        print(f"UPGC Point indices: {upgc_indices} ({len(upgc_indices)} components)")
+        point_indices = get_point_indices(dim)
+        print(f"CGA Point indices: {point_indices} ({len(point_indices)} components)")
 
-        motor_indices = get_motor_indices(dim)
-        print(f"Motor indices: {motor_indices} ({len(motor_indices)} components)")
+        even_versor_indices = get_even_versor_indices(dim)
+        print(f"EvenVersor indices: {even_versor_indices} ({len(even_versor_indices)} components)")
 
         props = verify_null_basis_properties(dim)
         print(f"Null basis properties: {props}")

@@ -12,7 +12,8 @@ import torch
 import tempfile
 import os
 
-from fast_clifford.algebras import cga2d
+from fast_clifford.cga import CGA
+from fast_clifford.cga.layers import CliffordTransformLayer, CGAEncoder, CGADecoder, CGAPipeline
 
 
 # =============================================================================
@@ -22,11 +23,16 @@ from fast_clifford.algebras import cga2d
 class TestONNXExport:
     """Test ONNX export capability."""
 
-    def test_cga2d_care_layer_export(self):
-        """CGA2DCareLayer can be exported to ONNX."""
-        layer = cga2d.CGA2DCareLayer()
+    @pytest.fixture
+    def algebra(self):
+        """Get CGA2D algebra instance."""
+        return CGA(2)
 
-        motor = torch.randn(1, 7)
+    def test_cga2d_transform_layer_export(self, algebra):
+        """CliffordTransformLayer can be exported to ONNX."""
+        layer = CliffordTransformLayer(algebra)
+
+        ev = torch.randn(1, 8)
         point = torch.randn(1, 4)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -34,12 +40,12 @@ class TestONNXExport:
 
             torch.onnx.export(
                 layer,
-                (motor, point),
+                (ev, point),
                 onnx_path,
-                input_names=["motor", "point"],
+                input_names=["ev", "point"],
                 output_names=["output"],
                 dynamic_axes={
-                    "motor": {0: "batch"},
+                    "ev": {0: "batch"},
                     "point": {0: "batch"},
                     "output": {0: "batch"},
                 },
@@ -49,9 +55,9 @@ class TestONNXExport:
             assert os.path.exists(onnx_path)
             assert os.path.getsize(onnx_path) > 0
 
-    def test_upgc2d_encoder_export(self):
-        """UPGC2DEncoder can be exported to ONNX."""
-        encoder = cga2d.UPGC2DEncoder()
+    def test_upgc2d_encoder_export(self, algebra):
+        """CGAEncoder can be exported to ONNX."""
+        encoder = CGAEncoder(algebra)
 
         x = torch.randn(1, 2)
 
@@ -73,9 +79,9 @@ class TestONNXExport:
 
             assert os.path.exists(onnx_path)
 
-    def test_upgc2d_decoder_export(self):
-        """UPGC2DDecoder can be exported to ONNX."""
-        decoder = cga2d.UPGC2DDecoder()
+    def test_upgc2d_decoder_export(self, algebra):
+        """CGADecoder can be exported to ONNX."""
+        decoder = CGADecoder(algebra)
 
         point = torch.randn(1, 4)
 
@@ -97,11 +103,11 @@ class TestONNXExport:
 
             assert os.path.exists(onnx_path)
 
-    def test_full_pipeline_export(self):
-        """CGA2DTransformPipeline can be exported to ONNX."""
-        pipeline = cga2d.CGA2DTransformPipeline()
+    def test_full_pipeline_export(self, algebra):
+        """CGAPipeline can be exported to ONNX."""
+        pipeline = CGAPipeline(algebra)
 
-        motor = torch.randn(1, 7)
+        ev = torch.randn(1, 8)
         x = torch.randn(1, 2)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -109,12 +115,12 @@ class TestONNXExport:
 
             torch.onnx.export(
                 pipeline,
-                (motor, x),
+                (ev, x),
                 onnx_path,
-                input_names=["motor", "x"],
+                input_names=["ev", "x"],
                 output_names=["y"],
                 dynamic_axes={
-                    "motor": {0: "batch"},
+                    "ev": {0: "batch"},
                     "x": {0: "batch"},
                     "y": {0: "batch"},
                 },
@@ -131,14 +137,19 @@ class TestONNXExport:
 class TestONNXNoLoops:
     """Test that ONNX exports contain no loop operations."""
 
-    def test_cga2d_care_layer_no_loops(self):
-        """CGA2DCareLayer ONNX has no Loop nodes."""
+    @pytest.fixture
+    def algebra(self):
+        """Get CGA2D algebra instance."""
+        return CGA(2)
+
+    def test_cga2d_transform_layer_no_loops(self, algebra):
+        """CliffordTransformLayer ONNX has no Loop nodes."""
         pytest.importorskip("onnx")
         import onnx
 
-        layer = cga2d.CGA2DCareLayer()
+        layer = CliffordTransformLayer(algebra)
 
-        motor = torch.randn(1, 7)
+        ev = torch.randn(1, 8)
         point = torch.randn(1, 4)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -146,7 +157,7 @@ class TestONNXNoLoops:
 
             torch.onnx.export(
                 layer,
-                (motor, point),
+                (ev, point),
                 onnx_path,
                 opset_version=17,
             )
@@ -166,26 +177,33 @@ class TestONNXNoLoops:
 class TestONNXNumericalEquivalence:
     """Test ONNX output matches PyTorch output."""
 
-    def test_onnx_pytorch_equivalence(self):
+    @pytest.fixture
+    def algebra(self):
+        """Get CGA2D algebra instance."""
+        return CGA(2)
+
+    def test_onnx_pytorch_equivalence(self, algebra):
         """ONNX model output matches PyTorch."""
         pytest.importorskip("onnxruntime")
         import onnxruntime as ort
 
-        layer = cga2d.CGA2DCareLayer()
+        layer = CliffordTransformLayer(algebra)
 
-        motor = torch.randn(4, 7)
+        ev = torch.randn(4, 8)
         point = torch.randn(4, 4)
 
         # PyTorch output
-        torch_output = layer(motor, point).numpy()
+        torch_output = layer(ev, point).numpy()
 
         with tempfile.TemporaryDirectory() as tmpdir:
             onnx_path = os.path.join(tmpdir, "test.onnx")
 
             torch.onnx.export(
                 layer,
-                (motor, point),
+                (ev, point),
                 onnx_path,
+                input_names=["versor", "point"],
+                output_names=["output"],
                 opset_version=17,
             )
 
@@ -194,7 +212,7 @@ class TestONNXNumericalEquivalence:
             ort_output = session.run(
                 None,
                 {
-                    "motor": motor.numpy(),
+                    "versor": ev.numpy(),
                     "point": point.numpy(),
                 }
             )[0]

@@ -314,32 +314,32 @@ class TestReverseOperation:
 class TestSparseSandwichProduct:
     """Test sparse sandwich product against full computation."""
 
-    def test_identity_motor(self, functional_module):
-        """Test with identity motor (scalar = 1, all else zero)."""
-        motor = torch.zeros(1, 31)
-        motor[0, 0] = 1.0  # scalar
+    def test_identity_ev(self, functional_module):
+        """Test with identity EvenVersor (scalar = 1, all else zero)."""
+        ev = torch.zeros(1, 32)
+        ev[0, 0] = 1.0  # scalar
 
         point = torch.tensor([[1.0, 2.0, 3.0, 4.0, 0.5, 1.5]])
 
-        result = functional_module.sandwich_product_sparse(motor, point)
+        result = functional_module.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(result, point, atol=1e-6), \
-            f"Identity motor should not change point. Got {result}"
+            f"Identity EvenVersor should not change point. Got {result}"
 
     def test_against_full_computation(self, cga_reference, functional_module):
         """Test sparse sandwich product against full computation."""
         layout, _, stuff = cga_reference
 
-        # Create a simple motor (pure rotation in e12 plane)
+        # Create a simple EvenVersor (pure rotation in e12 plane)
         theta = np.pi / 4  # 45 degrees
-        motor_full = np.zeros(64)
-        motor_full[0] = np.cos(theta / 2)   # scalar
-        motor_full[7] = np.sin(theta / 2)   # e12
+        ev_full = np.zeros(64)
+        ev_full[0] = np.cos(theta / 2)   # scalar
+        ev_full[7] = np.sin(theta / 2)   # e12
 
-        # Create a sparse motor (31 components)
-        motor_sparse = torch.zeros(1, 31)
-        motor_sparse[0, 0] = motor_full[0]  # scalar
-        motor_sparse[0, 1] = motor_full[7]  # e12
+        # Create a sparse EvenVersor (31 components)
+        ev_sparse = torch.zeros(1, 32)
+        ev_sparse[0, 0] = ev_full[0]  # scalar
+        ev_sparse[0, 1] = ev_full[7]  # e12
 
         # Create test point using up()
         x_4d = np.array([1.0, 0.0, 0.0, 0.0])
@@ -355,17 +355,17 @@ class TestSparseSandwichProduct:
         ]], dtype=torch.float32)
 
         # Compute with sparse function
-        result_sparse = functional_module.sandwich_product_sparse(motor_sparse, point_sparse)
+        result_sparse = functional_module.sandwich_product_sparse(ev_sparse, point_sparse)
 
         # Compute with full function for reference
-        motor_full_t = torch.tensor(motor_full, dtype=torch.float32).unsqueeze(0)
+        ev_full_t = torch.tensor(ev_full, dtype=torch.float32).unsqueeze(0)
         X_full_t = torch.tensor(X_full, dtype=torch.float32).unsqueeze(0)
 
         gp = functional_module.geometric_product_full
         rev = functional_module.reverse_full
 
-        MX = gp(motor_full_t, X_full_t)
-        M_rev = rev(motor_full_t)
+        MX = gp(ev_full_t, X_full_t)
+        M_rev = rev(ev_full_t)
         result_full = gp(MX, M_rev)
 
         # Extract Grade 1 from full result
@@ -378,12 +378,12 @@ class TestSparseSandwichProduct:
         """Test batched computation."""
         batch_size = 5
 
-        motors = torch.randn(batch_size, 31)
-        motors[:, 0] = 1.0  # Ensure non-zero scalar
+        evs = torch.randn(batch_size, 32)
+        evs[:, 0] = 1.0  # Ensure non-zero scalar
 
         points = torch.randn(batch_size, 6)
 
-        result = functional_module.sandwich_product_sparse(motors, points)
+        result = functional_module.sandwich_product_sparse(evs, points)
 
         assert result.shape == (batch_size, 6)
 
@@ -424,43 +424,43 @@ class TestEdgeCases:
 
     def test_zero_vector_point(self, functional_module):
         """Test with zero 4D vector (origin)."""
-        motor = torch.zeros(1, 31)
-        motor[0, 0] = 1.0
+        ev = torch.zeros(1, 32)
+        ev[0, 0] = 1.0
 
         zero_4d = torch.zeros(1, 4)
-        point = functional_module.upgc_encode(zero_4d)
+        point = functional_module.cga_encode(zero_4d)
 
-        result = functional_module.sandwich_product_sparse(motor, point)
+        result = functional_module.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(result, point, atol=1e-6), \
             f"Zero vector point should be unchanged by identity. Got {result}"
 
-    def test_identity_motor_preserves_point(self, functional_module):
-        """Test identity motor (scalar=1) preserves any point."""
-        motor = torch.zeros(1, 31)
-        motor[0, 0] = 1.0  # Identity: M = 1
+    def test_identity_ev_preserves_point(self, functional_module):
+        """Test identity EvenVersor (scalar=1) preserves any point."""
+        ev = torch.zeros(1, 32)
+        ev[0, 0] = 1.0  # Identity: M = 1
 
         for _ in range(5):
             point = torch.randn(1, 6)
-            result = functional_module.sandwich_product_sparse(motor, point)
+            result = functional_module.sandwich_product_sparse(ev, point)
 
             assert torch.allclose(result, point, atol=1e-6), \
-                "Identity motor must preserve point"
+                "Identity EvenVersor must preserve point"
 
-    def test_upgc_encode_decode_roundtrip(self, functional_module):
+    def test_cga_encode_decode_roundtrip(self, functional_module):
         """Test UPGC encode/decode roundtrip."""
         x_4d = torch.tensor([[1.0, 2.0, 3.0, 4.0]])
 
-        encoded = functional_module.upgc_encode(x_4d)
-        decoded = functional_module.upgc_decode(encoded)
+        encoded = functional_module.cga_encode(x_4d)
+        decoded = functional_module.cga_decode(encoded)
 
         assert torch.allclose(decoded, x_4d, atol=1e-6), \
             f"Roundtrip failed: {x_4d} -> {encoded} -> {decoded}"
 
-    def test_upgc_encode_origin(self, functional_module):
+    def test_cga_encode_origin(self, functional_module):
         """Test UPGC encoding of origin."""
         origin = torch.zeros(1, 4)
-        point = functional_module.upgc_encode(origin)
+        point = functional_module.cga_encode(origin)
 
         # At origin: e1=e2=e3=e4=0, e+ = -0.5, e- = 0.5
         expected = torch.tensor([[0.0, 0.0, 0.0, 0.0, -0.5, 0.5]])
@@ -470,112 +470,112 @@ class TestEdgeCases:
 
 
 # =============================================================================
-# CGA4DCareLayer Tests
+# CliffordTransformLayer Tests
 # =============================================================================
 
-class TestCGA4DCareLayer:
-    """Test CGA4DCareLayer module."""
+class TestCliffordTransformLayer:
+    """Test CliffordTransformLayer module."""
 
     def test_layer_basic_functionality(self):
         """Test basic forward pass."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.zeros(1, 31)
-        motor[0, 0] = 1.0
+        ev = torch.zeros(1, 32)
+        ev[0, 0] = 1.0
 
         point = torch.tensor([[1.0, 2.0, 3.0, 4.0, 0.5, 1.5]])
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.shape == point.shape
         assert torch.allclose(result, point, atol=1e-6)
 
     def test_layer_batched(self):
         """Test batched computation."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
         batch_size = 10
-        motor = torch.randn(batch_size, 31)
-        motor[:, 0] = 1.0  # Ensure valid motor
+        ev = torch.randn(batch_size, 32)
+        ev[:, 0] = 1.0  # Ensure valid EvenVersor
 
         point = torch.randn(batch_size, 6)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.shape == (batch_size, 6)
 
     def test_precision_handling_float16(self):
         """Test that float16 inputs are handled correctly."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.zeros(1, 31, dtype=torch.float16)
-        motor[0, 0] = 1.0
+        ev = torch.zeros(1, 32, dtype=torch.float16)
+        ev[0, 0] = 1.0
 
         point = torch.tensor([[1.0, 2.0, 3.0, 4.0, 0.5, 1.5]], dtype=torch.float16)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.dtype == torch.float16
         assert torch.allclose(result, point, atol=1e-3)
 
     def test_precision_handling_float32(self):
         """Test that float32 inputs produce float32 outputs."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(1, 31, dtype=torch.float32)
-        motor[0, 0] = 1.0
+        ev = torch.randn(1, 32, dtype=torch.float32)
+        ev[0, 0] = 1.0
 
         point = torch.randn(1, 6, dtype=torch.float32)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.dtype == torch.float32
 
 
-class TestCGA4DTransformPipeline:
+class TestCGAPipeline:
     """Test complete CGA4D transformation pipeline."""
 
     def test_pipeline_roundtrip(self):
-        """Test that identity motor preserves 4D point."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DTransformPipeline
+        """Test that identity EvenVersor preserves 4D point."""
+        from fast_clifford.algebras.cga4d.layers import CGAPipeline
 
-        pipeline = CGA4DTransformPipeline()
+        pipeline = CGAPipeline()
 
-        motor = torch.zeros(1, 31)
-        motor[0, 0] = 1.0
+        ev = torch.zeros(1, 32)
+        ev[0, 0] = 1.0
 
         x_4d = torch.tensor([[1.0, 2.0, 3.0, 4.0]])
 
-        y_4d = pipeline(motor, x_4d)
+        y_4d = pipeline(ev, x_4d)
 
         assert y_4d.shape == x_4d.shape
         assert torch.allclose(y_4d, x_4d, atol=1e-6)
 
     def test_pipeline_rotation_e12(self):
         """Test rotation in e1-e2 plane."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DTransformPipeline
+        from fast_clifford.algebras.cga4d.layers import CGAPipeline
         import numpy as np
 
-        pipeline = CGA4DTransformPipeline()
+        pipeline = CGAPipeline()
 
         # Rotation in e12 plane by 90 degrees
         theta = np.pi / 2
-        motor = torch.zeros(1, 31)
-        motor[0, 0] = np.cos(theta / 2)  # scalar
-        motor[0, 1] = np.sin(theta / 2)  # e12
+        ev = torch.zeros(1, 32)
+        ev[0, 0] = np.cos(theta / 2)  # scalar
+        ev[0, 1] = np.sin(theta / 2)  # e12
 
         # Point on e1 axis
         x = torch.tensor([[1.0, 0.0, 0.0, 0.0]])
 
-        y = pipeline(motor, x)
+        y = pipeline(ev, x)
 
         # After 90 deg rotation: (1,0,0,0) -> (0,-1,0,0) in GA convention
         expected = torch.tensor([[0.0, -1.0, 0.0, 0.0]])
@@ -593,13 +593,13 @@ class TestCrossPlatform:
 
     def test_cpu_computation(self):
         """Test computation on CPU."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
-        motor = torch.randn(4, 31, device='cpu')
+        layer = CliffordTransformLayer()
+        ev = torch.randn(4, 32, device='cpu')
         point = torch.randn(4, 6, device='cpu')
 
-        result = layer(motor, point)
+        result = layer(ev, point)
         assert result.device.type == 'cpu'
         assert result.shape == (4, 6)
 
@@ -609,13 +609,13 @@ class TestCrossPlatform:
     )
     def test_cuda_computation(self):
         """Test computation on CUDA."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer().cuda()
-        motor = torch.randn(4, 31, device='cuda')
+        layer = CliffordTransformLayer().cuda()
+        ev = torch.randn(4, 32, device='cuda')
         point = torch.randn(4, 6, device='cuda')
 
-        result = layer(motor, point)
+        result = layer(ev, point)
         assert result.device.type == 'cuda'
         assert result.shape == (4, 6)
 
@@ -625,13 +625,13 @@ class TestCrossPlatform:
     )
     def test_mps_computation(self):
         """Test computation on MPS (Apple Silicon)."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer().to('mps')
-        motor = torch.randn(4, 31, device='mps')
+        layer = CliffordTransformLayer().to('mps')
+        ev = torch.randn(4, 32, device='mps')
         point = torch.randn(4, 6, device='mps')
 
-        result = layer(motor, point)
+        result = layer(ev, point)
         assert result.device.type == 'mps'
         assert result.shape == (4, 6)
 
@@ -645,40 +645,40 @@ class TestPrecision:
 
     def test_float32_precision(self):
         """Test computation in float32."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
-        motor = torch.randn(4, 31, dtype=torch.float32)
+        layer = CliffordTransformLayer()
+        ev = torch.randn(4, 32, dtype=torch.float32)
         point = torch.randn(4, 6, dtype=torch.float32)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
         assert result.dtype == torch.float32
 
     def test_float16_precision(self):
         """Test computation in float16 (with internal float32)."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
-        motor = torch.randn(4, 31, dtype=torch.float16)
+        layer = CliffordTransformLayer()
+        ev = torch.randn(4, 32, dtype=torch.float16)
         point = torch.randn(4, 6, dtype=torch.float16)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
         assert result.dtype == torch.float16
 
     def test_float16_vs_float32_consistency(self):
         """Verify float16 produces similar results to float32."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor_f32 = torch.randn(4, 31, dtype=torch.float32)
+        ev_f32 = torch.randn(4, 32, dtype=torch.float32)
         point_f32 = torch.randn(4, 6, dtype=torch.float32)
 
-        motor_f16 = motor_f32.to(torch.float16)
+        ev_f16 = ev_f32.to(torch.float16)
         point_f16 = point_f32.to(torch.float16)
 
-        result_f32 = layer(motor_f32, point_f32)
-        result_f16 = layer(motor_f16, point_f16)
+        result_f32 = layer(ev_f32, point_f32)
+        result_f16 = layer(ev_f16, point_f16)
 
         result_f16_as_f32 = result_f16.to(torch.float32)
 
@@ -695,35 +695,35 @@ class TestPrecision:
 class TestGradients:
     """Test gradient computation for CGA4D operations."""
 
-    def test_care_layer_gradients(self):
-        """Test that CGA4DCareLayer supports gradient computation."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+    def test_transform_layer_gradients(self):
+        """Test that CliffordTransformLayer supports gradient computation."""
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(4, 31, requires_grad=True)
+        ev = torch.randn(4, 32, requires_grad=True)
         point = torch.randn(4, 6, requires_grad=True)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
         loss = result.sum()
         loss.backward()
 
-        assert motor.grad is not None
+        assert ev.grad is not None
         assert point.grad is not None
-        assert motor.grad.shape == motor.shape
+        assert ev.grad.shape == ev.shape
         assert point.grad.shape == point.shape
 
-    def test_gradcheck_care_layer(self):
+    def test_gradcheck_transform_layer(self):
         """Test gradient correctness with gradcheck."""
         from fast_clifford.algebras.cga4d import functional as F
 
-        def func(motor, point):
-            return F.sandwich_product_sparse(motor, point)
+        def func(ev, point):
+            return F.sandwich_product_sparse(ev, point)
 
-        motor = torch.randn(2, 31, dtype=torch.float64, requires_grad=True)
+        ev = torch.randn(2, 32, dtype=torch.float64, requires_grad=True)
         point = torch.randn(2, 6, dtype=torch.float64, requires_grad=True)
 
-        assert torch.autograd.gradcheck(func, (motor, point), eps=1e-6, atol=1e-4)
+        assert torch.autograd.gradcheck(func, (ev, point), eps=1e-6, atol=1e-4)
 
 
 if __name__ == "__main__":

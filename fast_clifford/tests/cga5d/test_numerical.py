@@ -19,7 +19,7 @@ from fast_clifford.algebras.cga5d import (
     EUCLIDEAN_DIM,
     BLADE_COUNT,
     GRADE_INDICES,
-    UPGC_POINT_MASK,
+    POINT_MASK,
     EVEN_VERSOR_SPARSE_INDICES,
     REVERSE_SIGNS,
     EVEN_VERSOR_REVERSE_SIGNS,
@@ -33,10 +33,10 @@ from fast_clifford.algebras.cga5d import (
 )
 from fast_clifford.algebras.cga5d import functional as F
 from fast_clifford.algebras.cga5d.layers import (
-    CGA5DCareLayer,
-    UPGC5DEncoder,
-    UPGC5DDecoder,
-    CGA5DTransformPipeline,
+    CliffordTransformLayer,
+    CGAEncoder,
+    CGADecoder,
+    CGAPipeline,
 )
 
 
@@ -60,7 +60,7 @@ class TestAlgebraConstants:
 
     def test_upgc_point_size(self):
         """UPGC point has 7 components."""
-        assert len(UPGC_POINT_MASK) == 7
+        assert len(POINT_MASK) == 7
 
     def test_even_versor_size(self):
         """EvenVersor has 64 components (G0 + G2 + G4 + G6)."""
@@ -292,21 +292,21 @@ class TestUPGCEncodeDecode:
     def test_encode_shape(self):
         """UPGC encode produces 7-component output."""
         x = torch.randn(2, 5)
-        point = F.upgc_encode(x)
+        point = F.cga_encode(x)
         assert point.shape == (2, 7)
 
     def test_decode_shape(self):
         """UPGC decode produces 5-component output."""
         point = torch.randn(2, 7)
-        x = F.upgc_decode(point)
+        x = F.cga_decode(point)
         assert x.shape == (2, 5)
 
     def test_encode_decode_roundtrip(self):
         """Encode then decode recovers original point."""
         x_original = torch.randn(10, 5)
 
-        point = F.upgc_encode(x_original)
-        x_recovered = F.upgc_decode(point)
+        point = F.cga_encode(x_original)
+        x_recovered = F.cga_decode(point)
 
         assert torch.allclose(x_original, x_recovered, rtol=1e-5, atol=1e-5)
 
@@ -320,18 +320,18 @@ class TestUPGCEncodeDecode:
 
         # Our encoding
         x_tensor = torch.tensor(x, dtype=torch.float32).unsqueeze(0)
-        point_tensor = F.upgc_encode(x_tensor)
+        point_tensor = F.cga_encode(x_tensor)
         result = point_tensor.squeeze(0).numpy()
 
         assert np.allclose(result, expected, rtol=1e-5, atol=1e-5)
 
 
-class TestCGA5DCareLayer:
-    """Test CGA5DCareLayer PyTorch module."""
+class TestCliffordTransformLayer:
+    """Test CliffordTransformLayer PyTorch module."""
 
     def test_layer_output_shape(self):
         """Layer produces correct output shape."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 64)
         point = torch.randn(4, 7)
 
@@ -341,7 +341,7 @@ class TestCGA5DCareLayer:
 
     def test_layer_identity_even_versor(self):
         """Identity EvenVersor preserves point."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.zeros(2, 64)
         ev[:, 0] = 1.0
@@ -354,7 +354,7 @@ class TestCGA5DCareLayer:
 
     def test_layer_batch_consistency(self):
         """Batched and single computation give same results."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(3, 64)
         point = torch.randn(3, 7)
@@ -366,12 +366,12 @@ class TestCGA5DCareLayer:
             assert torch.allclose(batched_result[i], single_result.squeeze(0), rtol=1e-5)
 
 
-class TestCGA5DTransformPipeline:
+class TestCGAPipeline:
     """Test complete transformation pipeline."""
 
     def test_pipeline_output_shape(self):
         """Pipeline produces correct output shape."""
-        pipeline = CGA5DTransformPipeline()
+        pipeline = CGAPipeline()
         ev = torch.randn(4, 64)
         x = torch.randn(4, 5)
 
@@ -381,7 +381,7 @@ class TestCGA5DTransformPipeline:
 
     def test_pipeline_identity_even_versor(self):
         """Identity EvenVersor preserves 5D point."""
-        pipeline = CGA5DTransformPipeline()
+        pipeline = CGAPipeline()
 
         ev = torch.zeros(2, 64)
         ev[:, 0] = 1.0
@@ -398,7 +398,7 @@ class TestCrossPlatform:
 
     def test_cpu_execution(self):
         """Operations work on CPU."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(2, 64, device='cpu')
         point = torch.randn(2, 7, device='cpu')
 
@@ -409,7 +409,7 @@ class TestCrossPlatform:
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
     def test_cuda_execution(self):
         """Operations work on CUDA."""
-        layer = CGA5DCareLayer().cuda()
+        layer = CliffordTransformLayer().cuda()
         ev = torch.randn(2, 64, device='cuda')
         point = torch.randn(2, 7, device='cuda')
 
@@ -420,7 +420,7 @@ class TestCrossPlatform:
     @pytest.mark.skipif(not torch.backends.mps.is_available(), reason="MPS not available")
     def test_mps_execution(self):
         """Operations work on MPS (Apple Silicon)."""
-        layer = CGA5DCareLayer().to('mps')
+        layer = CliffordTransformLayer().to('mps')
         ev = torch.randn(2, 64, device='mps')
         point = torch.randn(2, 7, device='mps')
 
@@ -434,7 +434,7 @@ class TestPrecision:
 
     def test_float32_precision(self):
         """Float32 operations are stable."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(10, 64, dtype=torch.float32)
         point = torch.randn(10, 7, dtype=torch.float32)
 
@@ -446,7 +446,7 @@ class TestPrecision:
 
     def test_float16_vs_float32_consistency(self):
         """Float16 and float32 give consistent results."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev_f32 = torch.randn(5, 64, dtype=torch.float32)
         point_f32 = torch.randn(5, 7, dtype=torch.float32)
@@ -483,8 +483,8 @@ class TestGradients:
         assert not torch.isnan(point.grad).any()
 
     def test_layer_gradient_flow(self):
-        """Gradients flow through CGA5DCareLayer."""
-        layer = CGA5DCareLayer()
+        """Gradients flow through CliffordTransformLayer."""
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(2, 64, requires_grad=True)
         point = torch.randn(2, 7, requires_grad=True)
@@ -498,7 +498,7 @@ class TestGradients:
 
     def test_pipeline_gradient_flow(self):
         """Gradients flow through full pipeline."""
-        pipeline = CGA5DTransformPipeline()
+        pipeline = CGAPipeline()
 
         ev = torch.randn(2, 64, requires_grad=True)
         x = torch.randn(2, 5, requires_grad=True)
@@ -516,7 +516,7 @@ class TestEdgeCases:
 
     def test_zero_even_versor(self):
         """Zero EvenVersor produces zero output."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.zeros(1, 64)
         point = torch.randn(1, 7)
@@ -527,7 +527,7 @@ class TestEdgeCases:
 
     def test_zero_point(self):
         """Zero point produces zero output."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(1, 64)
         point = torch.zeros(1, 7)
@@ -538,7 +538,7 @@ class TestEdgeCases:
 
     def test_large_batch(self):
         """Large batch sizes work correctly."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(256, 64)
         point = torch.randn(256, 7)
@@ -550,7 +550,7 @@ class TestEdgeCases:
 
     def test_single_batch(self):
         """Single batch size works correctly."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(1, 64)
         point = torch.randn(1, 7)

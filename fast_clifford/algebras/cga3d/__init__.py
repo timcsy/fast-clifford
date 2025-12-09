@@ -23,7 +23,7 @@ from .functional import (
     GRADE_3_MASK,
     GRADE_4_MASK,
     GRADE_5_MASK,
-    UPGC_POINT_MASK,
+    POINT_MASK,
     EVEN_VERSOR_MASK,
     REVERSE_SIGNS,
     EVEN_VERSOR_REVERSE_SIGNS,
@@ -36,8 +36,8 @@ from .functional import (
     # Sparse functions
     sandwich_product_sparse,
     reverse_even_versor,
-    upgc_encode,
-    upgc_decode,
+    cga_encode,
+    cga_decode,
     # Extended operations
     compose_even_versor,
     compose_similitude,
@@ -76,7 +76,7 @@ __all__ = [
     "GRADE_3_MASK",
     "GRADE_4_MASK",
     "GRADE_5_MASK",
-    "UPGC_POINT_MASK",
+    "POINT_MASK",
     "EVEN_VERSOR_MASK",
     "REVERSE_SIGNS",
     "EVEN_VERSOR_REVERSE_SIGNS",
@@ -89,8 +89,8 @@ __all__ = [
     # Sparse functions
     "sandwich_product_sparse",
     "reverse_even_versor",
-    "upgc_encode",
-    "upgc_decode",
+    "cga_encode",
+    "cga_decode",
     # Extended operations
     "compose_even_versor",
     "compose_similitude",

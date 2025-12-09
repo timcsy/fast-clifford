@@ -4,23 +4,25 @@ High-performance Conformal Geometric Algebra (CGA) library for PyTorch, optimize
 
 ## Features
 
-- **Unified interface**: `CGA(n)` and `Cl(p,q,r)` factory functions
-- **Multi-dimensional CGA support**: CGA0D to CGA5D (hardcoded), CGA6D+ (runtime)
-- **Hardware acceleration**: CPU, Apple MPS, NVIDIA CUDA
-- **ONNX compatible**: Loop-free operations for TensorRT deployment
-- **High performance**: Up to 284x faster than clifford library
+- **Unified Interface**: `CGA(n)` and `Cl(p,q,r)` factory functions for any dimension
+- **Multi-dimensional Support**: CGA0D to CGA5D (hardcoded), CGA6D+ (runtime)
+- **Hardware Acceleration**: CPU, Apple MPS, NVIDIA CUDA
+- **ONNX Compatible**: Loop-free operations for TensorRT deployment
+- **High Performance**: Up to 284x faster than clifford library
+- **Operator Overloading**: Intuitive Python operators (`*`, `^`, `|`, `<<`, `>>`, `@`, `~`)
+- **Complete Algebra**: Geometric product, wedge, contractions, dual, exponential map, and more
 
 ## Supported Algebras
 
-| Algebra | Signature | Blades | Point | Motor | Algorithm |
-|---------|-----------|--------|-------|-------|-----------|
-| CGA0D | Cl(1,1) | 4 | 2 | 2 | Hardcoded |
-| CGA1D | Cl(2,1) | 8 | 3 | 4 | Hardcoded |
-| CGA2D | Cl(3,1) | 16 | 4 | 7 | Hardcoded |
-| CGA3D | Cl(4,1) | 32 | 5 | 16 | Hardcoded |
-| CGA4D | Cl(5,1) | 64 | 6 | 31 | Hardcoded |
-| CGA5D | Cl(6,1) | 128 | 7 | 64 | Hardcoded |
-| CGA6D+ | Cl(n+1,1) | 2^(n+2) | n+2 | varies | Runtime |
+| Algebra | Signature | Blades | Point | EvenVersor | Bivector | Implementation |
+|---------|-----------|--------|-------|------------|----------|----------------|
+| CGA0D | Cl(1,1) | 4 | 2 | 2 | 1 | Hardcoded |
+| CGA1D | Cl(2,1) | 8 | 3 | 4 | 3 | Hardcoded |
+| CGA2D | Cl(3,1) | 16 | 4 | 8 | 6 | Hardcoded |
+| CGA3D | Cl(4,1) | 32 | 5 | 16 | 10 | Hardcoded |
+| CGA4D | Cl(5,1) | 64 | 6 | 32 | 15 | Hardcoded |
+| CGA5D | Cl(6,1) | 128 | 7 | 64 | 21 | Hardcoded |
+| CGA6D+ | Cl(n+1,1) | 2^(n+2) | n+2 | varies | varies | Runtime |
 
 ## Installation
 
@@ -33,92 +35,164 @@ uv sync
 Or with pip:
 
 ```bash
-pip install torch numpy clifford
+pip install torch numpy
 pip install -e .
 ```
 
 ## Quick Start
 
-### Unified Interface (Recommended)
+### Basic Usage
 
 ```python
 import torch
-from fast_clifford import CGA, Cl
+from fast_clifford import CGA
 
-# Create CGA by Euclidean dimension
-cga3d = CGA(3)  # CGA3D Cl(4,1,0)
-print(f"Blades: {cga3d.blade_count}")  # 32
+# Create CGA algebra for 3D Euclidean space
+cga = CGA(3)  # CGA3D: Cl(4,1)
 
-# Or create by Clifford signature
-cga3d = Cl(4, 1)  # Same as CGA(3)
+# Encode 3D points to conformal representation
+points = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
+conformal_points = cga.cga_encode(points)  # Shape: (2, 5)
 
-# Encode 3D point to UPGC
-x = torch.tensor([[1.0, 2.0, 3.0]])
-point = cga3d.upgc_encode(x)
+# Create an EvenVersor (rotation + translation + scaling)
+versor = torch.randn(2, cga.even_versor_count)  # Shape: (2, 16)
 
-# Create motor and apply transformation
-motor = torch.randn(1, 16)  # 16 motor components
-transformed = cga3d.sandwich_product_sparse(motor, point)
+# Apply transformation: result = V x point x reverse(V)
+transformed = cga.sandwich_product_sparse(versor, conformal_points)
 
-# Decode back to 3D
-result = cga3d.upgc_decode(transformed)
-print(result)  # tensor([[x', y', z']])
+# Decode back to 3D Euclidean space
+result = cga.cga_decode(transformed)  # Shape: (2, 3)
 ```
 
-### Direct Module Access
+### Operator Overloading (Multivector Class)
 
 ```python
+from fast_clifford import CGA
 import torch
-from fast_clifford.algebras import cga3d
 
-# Create a motor (rotation + translation) and a point
-motor = torch.randn(1, 16)  # 16 motor components
-point = cga3d.upgc_encode(torch.tensor([[1.0, 2.0, 3.0]]))  # 3D point -> UPGC
+cga = CGA(3)
 
-# Apply transformation: M × X × M̃
-transformed = cga3d.sandwich_product_sparse(motor, point)
+# Create Multivector wrappers
+a = cga.multivector(torch.randn(32))
+b = cga.multivector(torch.randn(32))
 
-# Decode back to 3D
-result = cga3d.upgc_decode(transformed)
-print(result)  # tensor([[x', y', z']])
+# Intuitive operators
+c = a * b      # Geometric product
+c = a ^ b      # Outer product (wedge)
+c = a | b      # Inner product
+c = a << b     # Left contraction
+c = a >> b     # Right contraction
+c = ~a         # Reverse
+c = a ** -1    # Inverse
+
+# EvenVersor composition
+ev1 = cga.even_versor(torch.randn(16))
+ev2 = cga.even_versor(torch.randn(16))
+ev3 = ev1 * ev2  # Composition (returns EvenVersor)
+
+# Similitude (optimized for rotation + translation + scaling)
+s1 = cga.similitude(torch.randn(16))
+s2 = cga.similitude(torch.randn(16))
+s3 = s1 * s2  # Composition (returns Similitude)
+
+# Sandwich product
+point = cga.cga_encode(torch.tensor([[1.0, 2.0, 3.0]]))
+result = ev1 @ point  # ev1 x point x ~ev1
 ```
 
-### Using PyTorch Layers
+### Extended Operations (Functional API)
+
+```python
+from fast_clifford import CGA
+import torch
+
+cga = CGA(3)
+
+# Full multivectors
+a = torch.randn(32)  # 32 blades for CGA3D
+b = torch.randn(32)
+
+# Products
+inner = cga.inner_product(a, b)        # Scalar product <a*b>_0
+outer = cga.outer_product(a, b)        # Wedge product a ^ b
+left = cga.left_contraction(a, b)      # Left contraction a << b
+right = cga.right_contraction(a, b)    # Right contraction a >> b
+
+# Unary operations
+grade2 = cga.grade_select(a, 2)        # Extract bivector component
+dual_a = cga.dual(a)                   # Poincare dual
+unit_a = cga.normalize(a)              # Unit normalization
+rev_a = cga.reverse_full(a)            # Reverse
+
+# Exponential map (bivector -> EvenVersor)
+bivector = torch.randn(cga.bivector_count)  # 10 components for CGA3D
+rotor = cga.exp_bivector(bivector)     # Returns EvenVersor (16 components)
+
+# EvenVersor operations
+ev1 = torch.randn(16)
+ev2 = torch.randn(16)
+composed = cga.compose_even_versor(ev1, ev2)  # EvenVersor composition
+rev_ev = cga.reverse_even_versor(ev1)         # EvenVersor reverse
+
+# Similitude operations (faster, no transversion)
+s1 = torch.randn(16)
+s2 = torch.randn(16)
+composed_s = cga.compose_similitude(s1, s2)
+point = cga.cga_encode(torch.tensor([[1.0, 2.0, 3.0]]))
+result = cga.sandwich_product_similitude(s1, point)
+
+# Structure normalization for Similitude
+normalized = cga.structure_normalize(s1)  # Hard normalization
+soft_norm = cga.soft_structure_normalize(s1, strength=0.1)  # Gradient-friendly
+ste_norm = cga.structure_normalize_ste(s1)  # Straight-through estimator
+```
+
+### PyTorch Layers
 
 ```python
 import torch
-from fast_clifford.algebras import cga3d
+from fast_clifford import CGA
 
-# Create transformation pipeline
-pipeline = cga3d.CGA3DTransformPipeline()
+cga = CGA(3)
 
-# Batch processing
-batch_size = 1024
-motors = torch.randn(batch_size, 16)
-points_3d = torch.randn(batch_size, 3)
+# Pre-built layers
+transform_layer = cga.get_transform_layer()  # Sandwich product layer
+encoder = cga.get_encoder()                   # Euclidean -> CGA point
+decoder = cga.get_decoder()                   # CGA point -> Euclidean
+pipeline = cga.get_transform_pipeline()       # Complete pipeline
 
-# Transform points
-transformed_3d = pipeline(motors, points_3d)
+# Use in neural network
+class GeometricNet(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.pipeline = CGA(3).get_transform_pipeline()
+        self.versor_net = torch.nn.Linear(64, 16)
+
+    def forward(self, features, points):
+        versors = self.versor_net(features)
+        return self.pipeline(versors, points)
 ```
 
 ### ONNX Export
 
 ```python
 import torch
-from fast_clifford.algebras import cga3d
+from fast_clifford import CGA
 
-layer = cga3d.CGA3DCareLayer()
-motor = torch.randn(1, 16)
+cga = CGA(3)
+layer = cga.get_transform_layer()
+
+versor = torch.randn(1, 16)
 point = torch.randn(1, 5)
 
 torch.onnx.export(
     layer,
-    (motor, point),
+    (versor, point),
     "cga3d_transform.onnx",
-    input_names=["motor", "point"],
+    input_names=["versor", "point"],
     output_names=["output"],
     dynamic_axes={
-        "motor": {0: "batch"},
+        "versor": {0: "batch"},
         "point": {0: "batch"},
         "output": {0: "batch"},
     },
@@ -126,9 +200,24 @@ torch.onnx.export(
 )
 ```
 
+### Direct Module Access
+
+```python
+# Access hardcoded modules directly for maximum performance
+from fast_clifford.algebras import cga3d
+
+versor = torch.randn(1024, 16)
+point = cga3d.cga_encode(torch.randn(1024, 3))
+
+# All operations available as functions
+result = cga3d.sandwich_product_sparse(versor, point)
+composed = cga3d.compose_even_versor(versor, versor)
+inner = cga3d.inner_product_full(torch.randn(32), torch.randn(32))
+```
+
 ## API Reference
 
-### Unified Interface
+### Factory Functions
 
 ```python
 from fast_clifford import CGA, Cl
@@ -137,90 +226,113 @@ from fast_clifford import CGA, Cl
 cga = CGA(n)  # n=0..5 hardcoded, n>=6 runtime
 
 # Create by Clifford signature
-cga = Cl(p, q, r=0)  # Cl(n+1, 1) for CGA(n)
+cga = Cl(p, q, r=0)  # e.g., Cl(4,1) for CGA3D
 ```
 
-**CGAAlgebraBase Properties:**
-- `euclidean_dim` - Euclidean dimension n
-- `blade_count` - Total blades (2^(n+2))
-- `point_count` - UPGC point components (n+2)
-- `motor_count` - Motor components
-- `clifford_notation` - e.g., "Cl(4,1,0)"
+### CGAAlgebraBase Properties
 
-**CGAAlgebraBase Methods:**
-- `upgc_encode(x)` - Euclidean to UPGC point
-- `upgc_decode(point)` - UPGC to Euclidean point
-- `geometric_product_full(a, b)` - Full geometric product
-- `sandwich_product_sparse(motor, point)` - Optimized M × X × M̃
-- `reverse_full(mv)` - Multivector reverse
-- `reverse_motor(motor)` - Motor reverse
-- `get_care_layer()` - Get CareLayer module
-- `get_encoder()` - Get UPGC encoder module
-- `get_decoder()` - Get UPGC decoder module
-- `get_transform_pipeline()` - Get complete pipeline
+| Property | Description |
+|----------|-------------|
+| `euclidean_dim` | Euclidean dimension n |
+| `blade_count` | Total blades 2^(n+2) |
+| `point_count` | CGA point components (n+2) |
+| `even_versor_count` | EvenVersor components |
+| `similitude_count` | Similitude components (= even_versor_count) |
+| `bivector_count` | Bivector components |
+| `max_grade` | Maximum grade (n+2) |
+| `signature` | Clifford signature tuple |
+| `clifford_notation` | e.g., "Cl(4,1,0)" |
 
-**Extended Operations (Feature 005):**
-- `compose(v1, v2, versor_type)` - EvenVersor/Similitude composition
-- `sandwich_product(versor, mv, versor_type)` - Versor transformation
-- `inner_product(a, b)` - Scalar product `<a*b>_0`
-- `outer_product(a, b)` - Wedge product `a ∧ b`
-- `left_contraction(a, b)` - Left contraction `a ⌋ b`
-- `right_contraction(a, b)` - Right contraction `a ⌊ b`
-- `grade_select(mv, k)` - Extract grade-k component
-- `dual(mv)` - Poincare duality
-- `normalize(mv)` - Unit normalization
-- `exp_bivector(B)` - Bivector exponential map `exp(B)`
+### Core Operations
 
-### Direct Module Access
+| Method | Input Shape | Output Shape | Description |
+|--------|-------------|--------------|-------------|
+| `cga_encode(x)` | (..., n) | (..., n+2) | Euclidean -> CGA point |
+| `cga_decode(point)` | (..., n+2) | (..., n) | CGA point -> Euclidean |
+| `geometric_product_full(a, b)` | (..., blades) | (..., blades) | Full geometric product |
+| `sandwich_product_sparse(ev, point)` | (..., ev), (..., point) | (..., point) | Optimized V x X x ~V |
+| `reverse_full(mv)` | (..., blades) | (..., blades) | Multivector reverse |
+| `reverse_even_versor(ev)` | (..., ev) | (..., ev) | EvenVersor reverse |
 
-Each algebra module (`cga0d`, `cga1d`, `cga2d`, `cga3d`, `cga4d`, `cga5d`) provides:
+### EvenVersor & Similitude Operations
 
-**Functions:**
-- `geometric_product_full(a, b)` - Full geometric product
-- `sandwich_product_sparse(motor, point)` - Optimized M × X × M̃
-- `upgc_encode(x)` - Euclidean to UPGC point
-- `upgc_decode(point)` - UPGC to Euclidean point
-- `reverse_full(mv)` - Multivector reverse
-- `reverse_motor(motor)` - Motor reverse
+| Method | Description |
+|--------|-------------|
+| `compose_even_versor(v1, v2)` | EvenVersor composition v1 x v2 |
+| `compose_similitude(s1, s2)` | Similitude composition (optimized) |
+| `sandwich_product_even_versor(v, point)` | General versor sandwich |
+| `sandwich_product_similitude(s, point)` | Similitude sandwich (optimized) |
+| `structure_normalize(s)` | Hard structure normalization |
+| `soft_structure_normalize(s, strength)` | Gradient-friendly normalization |
+| `structure_normalize_ste(s)` | Straight-through estimator |
 
-**Extended Operations:**
-- `compose_even_versor(v1, v2)` - EvenVersor composition
-- `compose_similitude(s1, s2)` - Similitude composition (faster)
-- `sandwich_product_similitude(s, point)` - Similitude transformation
-- `inner_product_full(a, b)` - Scalar product
-- `outer_product_full(a, b)` - Wedge product
-- `left_contraction_full(a, b)` - Left contraction
-- `right_contraction_full(a, b)` - Right contraction
-- `grade_select(mv, k)` - Extract grade-k component
-- `dual(mv)` - Poincare duality
-- `normalize(mv)` - Unit normalization
-- `exp_bivector(B)` - Bivector exponential map
+### Extended Operations
 
-**PyTorch Layers:**
-- `CGAxDCareLayer` - Sandwich product layer with precision handling
-- `UPGCxDEncoder` - Euclidean to UPGC encoder
-- `UPGCxDDecoder` - UPGC to Euclidean decoder
-- `CGAxDTransformPipeline` - Complete encode-transform-decode pipeline
+| Method | Description |
+|--------|-------------|
+| `inner_product(a, b)` | Scalar product `<a*b>_0` |
+| `outer_product(a, b)` | Wedge product `a ^ b` |
+| `left_contraction(a, b)` | Left contraction `a << b` |
+| `right_contraction(a, b)` | Right contraction `a >> b` |
+| `grade_select(mv, k)` | Extract grade-k component |
+| `dual(mv)` | Poincare duality |
+| `normalize(mv)` | Unit normalization |
+| `exp_bivector(B)` | Bivector exponential `exp(B)` |
 
-### Example: Multi-dimensional
+### Unified API (Static Routing)
 
-```python
-import torch
-from fast_clifford import CGA
+| Method | Description |
+|--------|-------------|
+| `compose(v1, v2, versor_type)` | Routes to compose_even_versor or compose_similitude |
+| `sandwich_product(v, point, versor_type)` | Routes to appropriate sandwich |
+| `reverse(v, versor_type)` | Routes to reverse_full or reverse_even_versor |
 
-# Works uniformly across all dimensions
-for n in [0, 1, 2, 3, 4, 5, 6]:
-    cga = CGA(n)
-    x = torch.randn(1, n) if n > 0 else torch.zeros(1, 0)
-    point = cga.upgc_encode(x)
-    motor = torch.randn(1, cga.motor_count)
-    result = cga.sandwich_product_sparse(motor, point)
-    print(f"CGA{n}D: {cga.blade_count} blades, {cga.motor_count} motor components")
-```
+### Multivector Factory Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `multivector(data)` | Multivector | Wrap tensor as Multivector |
+| `even_versor(data)` | EvenVersor | Wrap tensor as EvenVersor |
+| `similitude(data)` | Similitude | Wrap tensor as Similitude |
+| `point(x)` | Multivector | Create CGA point from Euclidean |
+
+### Multivector Operators
+
+| Operator | Operation |
+|----------|-----------|
+| `a * b` | Geometric product |
+| `a ^ b` | Outer product (wedge) |
+| `a \| b` | Inner product |
+| `a << b` | Left contraction |
+| `a >> b` | Right contraction |
+| `m @ x` | Sandwich product |
+| `~a` | Reverse |
+| `a ** -1` | Inverse |
+| `a + b`, `a - b` | Addition, subtraction |
+| `-a` | Negation |
+| `a / s` | Scalar division |
+
+### Layer Classes
+
+| Class | Description |
+|-------|-------------|
+| `CliffordTransformLayer` | Sandwich product layer |
+| `CGAEncoder` | Euclidean -> CGA point encoder |
+| `CGADecoder` | CGA point -> Euclidean decoder |
+| `CGAPipeline` | Complete transform pipeline |
+
+### Layer Factory Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `get_transform_layer()` | nn.Module | Sandwich product layer |
+| `get_encoder()` | nn.Module | CGA encoder |
+| `get_decoder()` | nn.Module | CGA decoder |
+| `get_transform_pipeline()` | nn.Module | Complete pipeline |
 
 ## Performance
 
-### vs clifford library (batch size 1024)
+### Benchmark vs clifford library (batch=1024)
 
 | Algebra | Geometric Product | Sandwich Product |
 |---------|-------------------|------------------|
@@ -230,21 +342,41 @@ for n in [0, 1, 2, 3, 4, 5, 6]:
 | CGA4D | - | **24x faster** |
 | CGA5D | - | **27x faster** |
 
+### CPU Throughput (M1 Pro)
+
+| Algebra | Points/sec (batch=16384) |
+|---------|--------------------------|
+| CGA1D | 40.2M |
+| CGA2D | 10.8M |
+| CGA3D | 2.7M |
+
+### Sparsity Optimization
+
+| Algebra | Naive Muls | Sparse Muls | Reduction |
+|---------|------------|-------------|-----------|
+| CGA1D | 96 | 72 | 25% |
+| CGA2D | 512 | 256 | 50% |
+| CGA3D | 4096 | 1600 | 61% |
+
 ### Optimization Techniques
 
-- **Hard-coded operations**: No Cayley table lookups
-- **Sparse representation**: Only compute non-zero blade products
-- **JIT compilation**: `@torch.jit.script` optimization
+- **Hardcoded Operations**: No Cayley table lookups for n<=5
+- **Sparse Representation**: Only compute non-zero blade products
+- **JIT Compilation**: `@torch.jit.script` optimization
 - **Loop-free**: All operations unrolled for ONNX compatibility
+- **Automatic Sparsity**: 25-61% computation reduction
 
 ## Testing
 
 ```bash
-# Run all tests
+# Run all tests (588 tests)
 uv run pytest fast_clifford/tests/ -v
 
-# Run specific algebra tests
+# Run specific dimension tests
 uv run pytest fast_clifford/tests/cga3d/ -v
+
+# Run extended operations tests
+uv run pytest fast_clifford/tests/test_extended_ops.py -v
 
 # Run with coverage
 uv run pytest --cov=fast_clifford
@@ -254,31 +386,35 @@ uv run pytest --cov=fast_clifford
 
 ```
 fast_clifford/
-├── __init__.py         # CGA, Cl unified interface exports
+├── __init__.py              # CGA, Cl, Multivector, EvenVersor, Similitude
 ├── algebras/
-│   ├── cga0d/          # Cl(1,1) - 0D CGA
-│   ├── cga1d/          # Cl(2,1) - 1D CGA
-│   ├── cga2d/          # Cl(3,1) - 2D CGA
-│   ├── cga3d/          # Cl(4,1) - 3D CGA
-│   ├── cga4d/          # Cl(5,1) - 4D CGA
-│   └── cga5d/          # Cl(6,1) - 5D CGA
-├── cga/                # Unified interface
-│   ├── base.py         # CGAAlgebraBase abstract class
-│   ├── registry.py     # HardcodedCGAWrapper
-│   └── runtime.py      # RuntimeCGAAlgebra (6D+)
-├── codegen/            # Code generation tools
-│   ├── cga_factory.py  # Algebra factory
-│   ├── generate.py     # Code generator
-│   └── sparse_analysis.py
-└── tests/              # Test suites
+│   ├── cga0d/               # Cl(1,1) - 0D CGA (4 blades)
+│   ├── cga1d/               # Cl(2,1) - 1D CGA (8 blades)
+│   ├── cga2d/               # Cl(3,1) - 2D CGA (16 blades)
+│   ├── cga3d/               # Cl(4,1) - 3D CGA (32 blades)
+│   ├── cga4d/               # Cl(5,1) - 4D CGA (64 blades)
+│   └── cga5d/               # Cl(6,1) - 5D CGA (128 blades)
+├── cga/
+│   ├── __init__.py          # CGA(), Cl() factory functions
+│   ├── base.py              # CGAAlgebraBase abstract class
+│   ├── registry.py          # HardcodedCGAWrapper (n<=5)
+│   ├── runtime.py           # RuntimeCGAAlgebra (n>=6)
+│   ├── layers.py            # CliffordTransformLayer, CGAEncoder, etc.
+│   └── multivector.py       # Multivector, EvenVersor, Similitude classes
+├── codegen/
+│   ├── cga_factory.py       # Algebra factory utilities
+│   ├── generate.py          # Code generator
+│   └── sparse_analysis.py   # Sparsity analysis
+└── tests/                   # Test suites (588 tests)
 ```
 
 ## Use Cases
 
-- **Robotics**: Rigid body transformations, kinematics
-- **Computer Graphics**: 3D rotations, translations, reflections
-- **Deep Learning**: Geometric neural networks (CARE Transformer)
-- **Physics Simulation**: Conformal transformations
+- **Robotics**: Rigid body transformations, kinematics, motion planning
+- **Computer Graphics**: 3D rotations, translations, reflections, interpolation
+- **Deep Learning**: Geometric neural networks (equivariant networks)
+- **Physics Simulation**: Conformal transformations, Minkowski space
+- **Computer Vision**: Camera calibration, 3D reconstruction
 
 ## License
 
@@ -288,3 +424,4 @@ MIT
 
 - [Geometric Algebra for Computer Science](http://geometricalgebra.org/)
 - [clifford - Numerical Geometric Algebra Module](https://github.com/pygae/clifford)
+- [A Guided Tour to the Plane-Based Geometric Algebra PGA](https://bivector.net/PGA4CS.html)

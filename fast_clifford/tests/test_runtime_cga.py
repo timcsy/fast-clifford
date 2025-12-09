@@ -57,26 +57,26 @@ class TestRuntimeCGAOperations:
         """Create CGA(6) algebra."""
         return CGA(6)
 
-    def test_upgc_encode_shape(self, cga6):
-        """Test that upgc_encode produces correct shape."""
+    def test_cga_encode_shape(self, cga6):
+        """Test that cga_encode produces correct shape."""
         batch_size = 4
         x = torch.randn(batch_size, 6)
-        point = cga6.upgc_encode(x)
+        point = cga6.cga_encode(x)
         assert point.shape == (batch_size, 8)
 
-    def test_upgc_decode_shape(self, cga6):
-        """Test that upgc_decode produces correct shape."""
+    def test_cga_decode_shape(self, cga6):
+        """Test that cga_decode produces correct shape."""
         batch_size = 4
         point = torch.randn(batch_size, 8)
-        x = cga6.upgc_decode(point)
+        x = cga6.cga_decode(point)
         assert x.shape == (batch_size, 6)
 
     def test_upgc_roundtrip(self, cga6):
         """Test encode/decode roundtrip preserves Euclidean coordinates."""
         batch_size = 4
         x = torch.randn(batch_size, 6)
-        point = cga6.upgc_encode(x)
-        x_decoded = cga6.upgc_decode(point)
+        point = cga6.cga_encode(x)
+        x_decoded = cga6.cga_decode(point)
         assert torch.allclose(x, x_decoded, atol=1e-5)
 
     def test_geometric_product_shape(self, cga6):
@@ -140,9 +140,9 @@ class TestRuntimeCGALayers:
     def cga6(self):
         return CGA(6)
 
-    def test_get_care_layer(self, cga6):
-        """Test get_care_layer returns working module."""
-        layer = cga6.get_care_layer()
+    def test_get_transform_layer(self, cga6):
+        """Test get_transform_layer returns working module."""
+        layer = cga6.get_transform_layer()
         assert isinstance(layer, torch.nn.Module)
 
         ev = torch.randn(4, cga6.even_versor_count)
@@ -241,11 +241,11 @@ class TestRuntimeCGAONNX:
     def cga6(self):
         return CGA(6)
 
-    def test_care_layer_onnx_no_loop(self, onnx_available, cga6):
+    def test_transform_layer_onnx_no_loop(self, onnx_available, cga6):
         """Test that CareLayer ONNX export has no Loop nodes."""
         import onnx
 
-        layer = cga6.get_care_layer()
+        layer = cga6.get_transform_layer()
 
         ev = torch.randn(1, cga6.even_versor_count)
         point = torch.randn(1, cga6.point_count)
@@ -272,12 +272,12 @@ class TestRuntimeCGAONNX:
 
             assert "Loop" not in op_types, f"Found Loop in ONNX: {op_types}"
 
-    def test_care_layer_onnx_numerical(self, onnx_available, cga6):
+    def test_transform_layer_onnx_numerical(self, onnx_available, cga6):
         """Test ONNX numerical consistency."""
         import onnx
         import onnxruntime as ort
 
-        layer = cga6.get_care_layer()
+        layer = cga6.get_transform_layer()
 
         ev = torch.randn(4, cga6.even_versor_count)
         point = torch.randn(4, cga6.point_count)
@@ -359,7 +359,7 @@ class TestRuntimeCGACliffordVerification:
             atol=1e-4
         )
 
-    def test_upgc_encode_vs_clifford(self, clifford_cga6, cga6):
+    def test_cga_encode_vs_clifford(self, clifford_cga6, cga6):
         """Compare UPGC encoding with clifford library."""
         layout, blades, stuff = clifford_cga6
         up_func = stuff['up']
@@ -377,7 +377,7 @@ class TestRuntimeCGACliffordVerification:
 
         # PyTorch computation
         x_torch = torch.tensor(x_values, dtype=torch.float32).unsqueeze(0)
-        point_torch = cga6.upgc_encode(x_torch)
+        point_torch = cga6.cga_encode(x_torch)
 
         assert torch.allclose(
             point_torch.squeeze(0),

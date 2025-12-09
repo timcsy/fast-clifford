@@ -23,7 +23,7 @@ from fast_clifford.codegen.cga_factory import (
     compute_grade_indices,
     compute_reverse_signs,
     get_product_table as factory_get_product_table,
-    get_upgc_point_indices,
+    get_point_indices,
     get_even_versor_indices,
     get_blade_names,
     verify_null_basis_properties,
@@ -62,7 +62,7 @@ GRADE_INDICES = (
 
 # UPGC Point: Grade 1 only (3 components)
 # Layout: [e1, e+, e-]
-UPGC_POINT_MASK = GRADE_1_INDICES
+POINT_MASK = GRADE_1_INDICES
 
 # EvenVersor: Grade 0, 2 (1 + 3 = 4 components)
 # Note: CGA1D has no Grade 4 (max grade is 3)
@@ -303,7 +303,7 @@ if __name__ == "__main__":
         print(f"  Grade {grade}: {indices}")
     print()
 
-    print(f"UPGC Point mask: {UPGC_POINT_MASK} ({len(UPGC_POINT_MASK)} components)")
+    print(f"UPGC Point mask: {POINT_MASK} ({len(POINT_MASK)} components)")
     print(f"EvenVersor mask: {EVEN_VERSOR_MASK} ({len(EVEN_VERSOR_MASK)} components)")
     print()
 

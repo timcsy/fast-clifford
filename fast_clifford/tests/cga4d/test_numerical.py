@@ -428,7 +428,7 @@ class TestEdgeCases:
         ev[0, 0] = 1.0
 
         zero_4d = torch.zeros(1, 4)
-        point = functional_module.upgc_encode(zero_4d)
+        point = functional_module.cga_encode(zero_4d)
 
         result = functional_module.sandwich_product_sparse(ev, point)
 
@@ -447,20 +447,20 @@ class TestEdgeCases:
             assert torch.allclose(result, point, atol=1e-6), \
                 "Identity EvenVersor must preserve point"
 
-    def test_upgc_encode_decode_roundtrip(self, functional_module):
+    def test_cga_encode_decode_roundtrip(self, functional_module):
         """Test UPGC encode/decode roundtrip."""
         x_4d = torch.tensor([[1.0, 2.0, 3.0, 4.0]])
 
-        encoded = functional_module.upgc_encode(x_4d)
-        decoded = functional_module.upgc_decode(encoded)
+        encoded = functional_module.cga_encode(x_4d)
+        decoded = functional_module.cga_decode(encoded)
 
         assert torch.allclose(decoded, x_4d, atol=1e-6), \
             f"Roundtrip failed: {x_4d} -> {encoded} -> {decoded}"
 
-    def test_upgc_encode_origin(self, functional_module):
+    def test_cga_encode_origin(self, functional_module):
         """Test UPGC encoding of origin."""
         origin = torch.zeros(1, 4)
-        point = functional_module.upgc_encode(origin)
+        point = functional_module.cga_encode(origin)
 
         # At origin: e1=e2=e3=e4=0, e+ = -0.5, e- = 0.5
         expected = torch.tensor([[0.0, 0.0, 0.0, 0.0, -0.5, 0.5]])
@@ -470,17 +470,17 @@ class TestEdgeCases:
 
 
 # =============================================================================
-# CGA4DCareLayer Tests
+# CliffordTransformLayer Tests
 # =============================================================================
 
-class TestCGA4DCareLayer:
-    """Test CGA4DCareLayer module."""
+class TestCliffordTransformLayer:
+    """Test CliffordTransformLayer module."""
 
     def test_layer_basic_functionality(self):
         """Test basic forward pass."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.zeros(1, 32)
         ev[0, 0] = 1.0
@@ -494,9 +494,9 @@ class TestCGA4DCareLayer:
 
     def test_layer_batched(self):
         """Test batched computation."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
         batch_size = 10
         ev = torch.randn(batch_size, 32)
@@ -510,9 +510,9 @@ class TestCGA4DCareLayer:
 
     def test_precision_handling_float16(self):
         """Test that float16 inputs are handled correctly."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.zeros(1, 32, dtype=torch.float16)
         ev[0, 0] = 1.0
@@ -526,9 +526,9 @@ class TestCGA4DCareLayer:
 
     def test_precision_handling_float32(self):
         """Test that float32 inputs produce float32 outputs."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(1, 32, dtype=torch.float32)
         ev[0, 0] = 1.0
@@ -540,14 +540,14 @@ class TestCGA4DCareLayer:
         assert result.dtype == torch.float32
 
 
-class TestCGA4DTransformPipeline:
+class TestCGAPipeline:
     """Test complete CGA4D transformation pipeline."""
 
     def test_pipeline_roundtrip(self):
         """Test that identity EvenVersor preserves 4D point."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DTransformPipeline
+        from fast_clifford.algebras.cga4d.layers import CGAPipeline
 
-        pipeline = CGA4DTransformPipeline()
+        pipeline = CGAPipeline()
 
         ev = torch.zeros(1, 32)
         ev[0, 0] = 1.0
@@ -561,10 +561,10 @@ class TestCGA4DTransformPipeline:
 
     def test_pipeline_rotation_e12(self):
         """Test rotation in e1-e2 plane."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DTransformPipeline
+        from fast_clifford.algebras.cga4d.layers import CGAPipeline
         import numpy as np
 
-        pipeline = CGA4DTransformPipeline()
+        pipeline = CGAPipeline()
 
         # Rotation in e12 plane by 90 degrees
         theta = np.pi / 2
@@ -593,9 +593,9 @@ class TestCrossPlatform:
 
     def test_cpu_computation(self):
         """Test computation on CPU."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 32, device='cpu')
         point = torch.randn(4, 6, device='cpu')
 
@@ -609,9 +609,9 @@ class TestCrossPlatform:
     )
     def test_cuda_computation(self):
         """Test computation on CUDA."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer().cuda()
+        layer = CliffordTransformLayer().cuda()
         ev = torch.randn(4, 32, device='cuda')
         point = torch.randn(4, 6, device='cuda')
 
@@ -625,9 +625,9 @@ class TestCrossPlatform:
     )
     def test_mps_computation(self):
         """Test computation on MPS (Apple Silicon)."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer().to('mps')
+        layer = CliffordTransformLayer().to('mps')
         ev = torch.randn(4, 32, device='mps')
         point = torch.randn(4, 6, device='mps')
 
@@ -645,9 +645,9 @@ class TestPrecision:
 
     def test_float32_precision(self):
         """Test computation in float32."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 32, dtype=torch.float32)
         point = torch.randn(4, 6, dtype=torch.float32)
 
@@ -656,9 +656,9 @@ class TestPrecision:
 
     def test_float16_precision(self):
         """Test computation in float16 (with internal float32)."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 32, dtype=torch.float16)
         point = torch.randn(4, 6, dtype=torch.float16)
 
@@ -667,9 +667,9 @@ class TestPrecision:
 
     def test_float16_vs_float32_consistency(self):
         """Verify float16 produces similar results to float32."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev_f32 = torch.randn(4, 32, dtype=torch.float32)
         point_f32 = torch.randn(4, 6, dtype=torch.float32)
@@ -695,11 +695,11 @@ class TestPrecision:
 class TestGradients:
     """Test gradient computation for CGA4D operations."""
 
-    def test_care_layer_gradients(self):
-        """Test that CGA4DCareLayer supports gradient computation."""
-        from fast_clifford.algebras.cga4d.layers import CGA4DCareLayer
+    def test_transform_layer_gradients(self):
+        """Test that CliffordTransformLayer supports gradient computation."""
+        from fast_clifford.algebras.cga4d.layers import CliffordTransformLayer
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(4, 32, requires_grad=True)
         point = torch.randn(4, 6, requires_grad=True)
@@ -713,7 +713,7 @@ class TestGradients:
         assert ev.grad.shape == ev.shape
         assert point.grad.shape == point.shape
 
-    def test_gradcheck_care_layer(self):
+    def test_gradcheck_transform_layer(self):
         """Test gradient correctness with gradcheck."""
         from fast_clifford.algebras.cga4d import functional as F
 

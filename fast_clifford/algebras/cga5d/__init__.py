@@ -9,7 +9,7 @@ This module provides:
 CGA5D specifications:
 - Signature: (+,+,+,+,+,+,-) = 6 positive, 1 negative
 - 128 blades total (2^7)
-- UPGC Point: 7 components (Grade 1)
+- CGA Point: 7 components (Grade 1)
 - EvenVersor: 64 components (Grade 0 + 2 + 4 + 6)
 """
 
@@ -19,8 +19,8 @@ from .functional import (
     reverse_full,
     sandwich_product_sparse,
     reverse_even_versor,
-    upgc_encode,
-    upgc_decode,
+    cga_encode,
+    cga_decode,
     # Extended operations
     compose_even_versor,
     compose_similitude,
@@ -43,7 +43,7 @@ from .algebra import (
     EUCLIDEAN_DIM,
     BLADE_COUNT,
     GRADE_INDICES,
-    UPGC_POINT_MASK,
+    POINT_MASK,
     EVEN_VERSOR_MASK,
     EVEN_VERSOR_SPARSE_INDICES,
     REVERSE_SIGNS,
@@ -69,7 +69,7 @@ __all__ = [
     "EUCLIDEAN_DIM",
     "BLADE_COUNT",
     "GRADE_INDICES",
-    "UPGC_POINT_MASK",
+    "POINT_MASK",
     "EVEN_VERSOR_MASK",
     "EVEN_VERSOR_SPARSE_INDICES",
     "REVERSE_SIGNS",
@@ -90,8 +90,8 @@ __all__ = [
     "reverse_full",
     "sandwich_product_sparse",
     "reverse_even_versor",
-    "upgc_encode",
-    "upgc_decode",
+    "cga_encode",
+    "cga_decode",
     # Extended operations
     "compose_even_versor",
     "compose_similitude",

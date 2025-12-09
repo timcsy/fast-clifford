@@ -92,7 +92,7 @@ class CGAAlgebraBase(ABC):
     # =========================================================================
 
     @abstractmethod
-    def upgc_encode(self, x: Tensor) -> Tensor:
+    def cga_encode(self, x: Tensor) -> Tensor:
         """
         Encode Euclidean coordinates to UPGC point.
 
@@ -105,7 +105,7 @@ class CGAAlgebraBase(ABC):
         ...
 
     @abstractmethod
-    def upgc_decode(self, point: Tensor) -> Tensor:
+    def cga_decode(self, point: Tensor) -> Tensor:
         """
         Decode UPGC point to Euclidean coordinates.
 
@@ -176,13 +176,13 @@ class CGAAlgebraBase(ABC):
     # =========================================================================
 
     @abstractmethod
-    def get_care_layer(self) -> nn.Module:
-        """Get CareLayer (sandwich product layer)"""
+    def get_transform_layer(self) -> nn.Module:
+        """Get CliffordTransformLayer (sandwich product layer)"""
         ...
 
-    def get_transform_layer(self) -> nn.Module:
-        """Get CliffordTransformLayer (alias for get_care_layer)"""
-        return self.get_care_layer()
+    def get_care_layer(self) -> nn.Module:
+        """Get CareLayer (alias for get_transform_layer, deprecated)"""
+        return self.get_transform_layer()
 
     @abstractmethod
     def get_encoder(self) -> nn.Module:
@@ -550,7 +550,7 @@ class CGAAlgebraBase(ABC):
         from .multivector import Multivector
         from fast_clifford.codegen.cga_factory import compute_grade_indices
 
-        point_data = self.upgc_encode(x)
+        point_data = self.cga_encode(x)
         grade_indices = compute_grade_indices(self.euclidean_dim)
         point_indices = list(grade_indices[1])
 

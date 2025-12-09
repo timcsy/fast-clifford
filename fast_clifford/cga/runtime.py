@@ -173,7 +173,7 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
     # Core Operations
     # =========================================================================
 
-    def upgc_encode(self, x: Tensor) -> Tensor:
+    def cga_encode(self, x: Tensor) -> Tensor:
         """
         Encode Euclidean coordinates to UPGC point.
 
@@ -203,7 +203,7 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
 
         return torch.cat([x, e_plus, e_minus], dim=-1)
 
-    def upgc_decode(self, point: Tensor) -> Tensor:
+    def cga_decode(self, point: Tensor) -> Tensor:
         """
         Decode UPGC point to Euclidean coordinates.
 
@@ -555,8 +555,9 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
         # Wait, that's wrong. Let me reconsider.
         # sinc(x) = sin(pi*x)/(pi*x), so sin(theta)/theta = sinc(theta/pi)
 
-        result_full = cos_theta.unsqueeze(-1) * torch.eye(1, self._blade_count, device=B.device, dtype=B.dtype).expand(*batch_shape, -1)
-        result_full = result_full.clone()
+        # Build result: cos(theta) + sinc(theta) * B
+        # Start with zeros and set scalar to cos(theta)
+        result_full = torch.zeros_like(B_full)
         result_full[..., 0] = cos_theta
         result_full = result_full + sinc_theta.unsqueeze(-1) * B_full
 
@@ -617,14 +618,14 @@ class RuntimeCGAAlgebra(CGAAlgebraBase, nn.Module):
     # Layer Factory Methods (using unified layers)
     # =========================================================================
 
-    def get_care_layer(self) -> nn.Module:
+    def get_transform_layer(self) -> nn.Module:
         """Get CliffordTransformLayer for this algebra."""
         from .layers import CliffordTransformLayer
         return CliffordTransformLayer(self)
 
-    def get_transform_layer(self) -> nn.Module:
-        """Get CliffordTransformLayer (alias for get_care_layer)."""
-        return self.get_care_layer()
+    def get_care_layer(self) -> nn.Module:
+        """Get CliffordTransformLayer (alias for get_transform_layer, deprecated)."""
+        return self.get_transform_layer()
 
     def get_encoder(self) -> nn.Module:
         """Get CGAEncoder for this algebra."""
@@ -651,7 +652,7 @@ class RuntimeCliffordAlgebra(nn.Module):
     Runtime computed Clifford algebra for non-CGA signatures.
 
     This is a placeholder for Cl(p,q,r) algebras that are not CGA.
-    CGA-specific operations (upgc_encode, upgc_decode) are not available.
+    CGA-specific operations (cga_encode, cga_decode) are not available.
     """
 
     def __init__(self, p: int, q: int, r: int = 0):

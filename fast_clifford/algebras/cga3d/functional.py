@@ -35,7 +35,7 @@ GRADE_4_INDICES = (26, 27, 28, 29, 30)
 GRADE_5_INDICES = (31,)
 
 # Sparsity masks
-UPGC_POINT_MASK = (1, 2, 3, 4, 5)  # 5 components
+POINT_MASK = (1, 2, 3, 4, 5)  # 5 components
 EVEN_VERSOR_MASK = (0, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 26, 27, 28, 29, 30)  # 16 components
 
 # Reverse signs for all 32 blades
@@ -1224,7 +1224,7 @@ def reverse_full(mv: Tensor) -> Tensor:
 # Point sparse indices: (1, 2, 3, 4, 5)
 
 @torch.jit.script
-def upgc_encode(x: Tensor) -> Tensor:
+def cga_encode(x: Tensor) -> Tensor:
     """
     Encode 3D vector to UPGC point representation.
 
@@ -1256,7 +1256,7 @@ def upgc_encode(x: Tensor) -> Tensor:
 
 
 @torch.jit.script
-def upgc_decode(point: Tensor) -> Tensor:
+def cga_decode(point: Tensor) -> Tensor:
     """
     Decode UPGC point to 3D vector.
 

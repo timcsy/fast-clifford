@@ -52,7 +52,7 @@ GRADE_INDICES = (
 
 # UPGC Point: Grade 1 only (2 components)
 # Layout: [e+, e-]
-UPGC_POINT_MASK = GRADE_1_INDICES
+POINT_MASK = GRADE_1_INDICES
 
 # EvenVersor: Grade 0, 2 (1 + 1 = 2 components)
 # Layout: [scalar, e+-]
@@ -279,7 +279,7 @@ if __name__ == "__main__":
         print(f"  Grade {grade}: {indices}")
     print()
 
-    print(f"UPGC Point mask: {UPGC_POINT_MASK} ({len(UPGC_POINT_MASK)} components)")
+    print(f"UPGC Point mask: {POINT_MASK} ({len(POINT_MASK)} components)")
     print(f"EvenVersor mask: {EVEN_VERSOR_MASK} ({len(EVEN_VERSOR_MASK)} components)")
     print()
 

@@ -20,7 +20,7 @@ from .cga_factory import (
     compute_grade_indices,
     compute_reverse_signs,
     get_product_table,
-    get_upgc_point_indices,
+    get_point_indices,
     get_even_versor_indices,
     get_blade_names,
 )
@@ -152,7 +152,7 @@ from typing import Tuple
             f"GRADE_5_INDICES = {self.algebra.get_grade_indices(5)}",
             "",
             "# Sparsity masks",
-            "UPGC_POINT_MASK = GRADE_1_INDICES  # 5 components",
+            "POINT_MASK = GRADE_1_INDICES  # 5 components",
             "EVEN_VERSOR_MASK = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES  # 16 components",
             "",
             "# Reverse signs for all 32 blades",
@@ -277,16 +277,16 @@ from typing import Tuple
         from .sparse_analysis import (
             get_sandwich_product_terms,
             EVEN_VERSOR_FULL_INDICES,
-            UPGC_POINT_FULL_INDICES,
+            POINT_FULL_INDICES,
             EVEN_VERSOR_PATTERN,
-            UPGC_POINT_PATTERN,
+            POINT_PATTERN,
         )
 
         # Get all terms for sandwich product
         terms = get_sandwich_product_terms(
             self.algebra.get_product_table(),
             EVEN_VERSOR_FULL_INDICES,
-            UPGC_POINT_FULL_INDICES,
+            POINT_FULL_INDICES,
             self.algebra.get_reverse_signs()
         )
 
@@ -300,12 +300,12 @@ from typing import Tuple
             "",
         ]
 
-        # Generate upgc_encode (T026)
-        lines.extend(self._generate_upgc_encode())
+        # Generate cga_encode (T026)
+        lines.extend(self._generate_cga_encode())
         lines.append("")
 
-        # Generate upgc_decode (T026)
-        lines.extend(self._generate_upgc_decode())
+        # Generate cga_decode (T026)
+        lines.extend(self._generate_cga_decode())
         lines.append("")
 
         # Generate reverse_even_versor (T030)
@@ -318,13 +318,13 @@ from typing import Tuple
 
         return "\n".join(lines)
 
-    def _generate_upgc_encode(self) -> List[str]:
-        """Generate UPGC encode function."""
+    def _generate_cga_encode(self) -> List[str]:
+        """Generate CGA encode function."""
         return [
             "@torch.jit.script",
-            "def upgc_encode(x: Tensor) -> Tensor:",
+            "def cga_encode(x: Tensor) -> Tensor:",
             '    """',
-            "    Encode 3D vector to UPGC point representation.",
+            "    Encode 3D vector to CGA point representation.",
             "",
             "    X = n_o + x + 0.5|x|^2 * n_inf",
             "",
@@ -336,7 +336,7 @@ from typing import Tuple
             "        x: 3D vector, shape (..., 3)",
             "",
             "    Returns:",
-            "        UPGC point, shape (..., 5) as [e1, e2, e3, e+, e-]",
+            "        CGA point, shape (..., 5) as [e1, e2, e3, e+, e-]",
             '    """',
             "    x1 = x[..., 0]",
             "    x2 = x[..., 1]",
@@ -360,18 +360,18 @@ from typing import Tuple
             "",
         ]
 
-    def _generate_upgc_decode(self) -> List[str]:
-        """Generate UPGC decode function."""
+    def _generate_cga_decode(self) -> List[str]:
+        """Generate CGA decode function."""
         return [
             "@torch.jit.script",
-            "def upgc_decode(point: Tensor) -> Tensor:",
+            "def cga_decode(point: Tensor) -> Tensor:",
             '    """',
-            "    Decode UPGC point to 3D vector.",
+            "    Decode CGA point to 3D vector.",
             "",
             "    Extracts the e1, e2, e3 components directly.",
             "",
             "    Args:",
-            "        point: UPGC point, shape (..., 5) as [e1, e2, e3, e+, e-]",
+            "        point: CGA point, shape (..., 5) as [e1, e2, e3, e+, e-]",
             "",
             "    Returns:",
             "        3D vector, shape (..., 3)",
@@ -433,7 +433,7 @@ from typing import Tuple
         terms: dict
     ) -> List[str]:
         """Generate sandwich_product_sparse function (T025)."""
-        from .sparse_analysis import UPGC_POINT_FULL_INDICES, count_multiplication_ops
+        from .sparse_analysis import POINT_FULL_INDICES, count_multiplication_ops
 
         lines = [
             "@torch.jit.script",
@@ -450,7 +450,7 @@ from typing import Tuple
             "        ev: EvenVersor, shape (..., 16)",
             "               [scalar, e12, e13, e1+, e1-, e23, e2+, e2-, e3+, e3-, e+-,",
             "                e123+, e123-, e12+-, e13+-, e23+-]",
-            "        point: UPGC point, shape (..., 5)",
+            "        point: CGA point, shape (..., 5)",
             "               [e1, e2, e3, e+, e-]",
             "",
             "    Returns:",
@@ -505,7 +505,7 @@ from typing import Tuple
         ]
 
         # Generate output for each of the 5 point components
-        for out_idx, full_idx in enumerate(UPGC_POINT_FULL_INDICES):
+        for out_idx, full_idx in enumerate(POINT_FULL_INDICES):
             component_terms = terms.get(full_idx, [])
 
             if not component_terms:
@@ -582,7 +582,7 @@ class CGANDAlgebra(AlgebraDefinition):
         self._product_table = get_product_table(euclidean_dim)
         self._reverse_signs = compute_reverse_signs(euclidean_dim)
         self._blade_names = get_blade_names(euclidean_dim)
-        self._upgc_point_indices = get_upgc_point_indices(euclidean_dim)
+        self._point_indices = get_point_indices(euclidean_dim)
         self._even_versor_indices = get_even_versor_indices(euclidean_dim)
 
     @property
@@ -614,8 +614,8 @@ class CGANDAlgebra(AlgebraDefinition):
     def get_blade_names(self) -> List[str]:
         return self._blade_names
 
-    def get_upgc_point_indices(self) -> Tuple[int, ...]:
-        return self._upgc_point_indices
+    def get_point_indices(self) -> Tuple[int, ...]:
+        return self._point_indices
 
     def get_even_versor_indices(self) -> Tuple[int, ...]:
         return self._even_versor_indices
@@ -715,9 +715,9 @@ from typing import Tuple
         lines.append("")
         lines.append("# Sparsity masks")
 
-        # UPGC Point 遮罩
-        upgc_indices = self.algebra.get_upgc_point_indices()
-        lines.append(f"UPGC_POINT_MASK = {upgc_indices}  # {len(upgc_indices)} components")
+        # CGA Point 遮罩
+        point_indices = self.algebra.get_point_indices()
+        lines.append(f"POINT_MASK = {point_indices}  # {len(point_indices)} components")
 
         # EvenVersor 遮罩
         even_versor_indices = self.algebra.get_even_versor_indices()
@@ -850,14 +850,14 @@ from typing import Tuple
         """生成稀疏操作函數。"""
         from .sparse_analysis import (
             get_even_versor_pattern,
-            get_upgc_point_pattern,
+            get_point_pattern,
             get_sandwich_product_terms_generic,
             count_multiplication_ops,
         )
 
         dim = self._euclidean_dim
         even_versor_pattern = get_even_versor_pattern(dim)
-        point_pattern = get_upgc_point_pattern(dim)
+        point_pattern = get_point_pattern(dim)
         terms = get_sandwich_product_terms_generic(dim)
         mul_ops = count_multiplication_ops(terms)
 
@@ -879,12 +879,12 @@ from typing import Tuple
             "",
         ]
 
-        # 生成 upgc_encode
-        lines.extend(self._generate_upgc_encode(dim, point_indices, blade_names))
+        # 生成 cga_encode
+        lines.extend(self._generate_cga_encode(dim, point_indices, blade_names))
         lines.append("")
 
-        # 生成 upgc_decode
-        lines.extend(self._generate_upgc_decode(dim, point_count))
+        # 生成 cga_decode
+        lines.extend(self._generate_cga_decode(dim, point_count))
         lines.append("")
 
         # 生成 reverse_even_versor
@@ -899,17 +899,17 @@ from typing import Tuple
 
         return "\n".join(lines)
 
-    def _generate_upgc_encode(
+    def _generate_cga_encode(
         self, dim: int, point_indices: Tuple[int, ...], blade_names: List[str]
     ) -> List[str]:
-        """生成 UPGC encode 函數。"""
+        """生成 CGA encode 函數。"""
         point_count = len(point_indices)
 
         lines = [
             "@torch.jit.script",
-            "def upgc_encode(x: Tensor) -> Tensor:",
+            "def cga_encode(x: Tensor) -> Tensor:",
             '    """',
-            f"    Encode {dim}D vector to UPGC point representation.",
+            f"    Encode {dim}D vector to CGA point representation.",
             "",
             "    X = n_o + x + 0.5|x|^2 * n_inf",
             "",
@@ -921,7 +921,7 @@ from typing import Tuple
             f"        x: {dim}D vector, shape (..., {dim})",
             "",
             "    Returns:",
-            f"        UPGC point, shape (..., {point_count})",
+            f"        CGA point, shape (..., {point_count})",
             '    """',
         ]
 
@@ -960,18 +960,18 @@ from typing import Tuple
 
         return lines
 
-    def _generate_upgc_decode(self, dim: int, point_count: int) -> List[str]:
-        """生成 UPGC decode 函數。"""
+    def _generate_cga_decode(self, dim: int, point_count: int) -> List[str]:
+        """生成 CGA decode 函數。"""
         return [
             "@torch.jit.script",
-            "def upgc_decode(point: Tensor) -> Tensor:",
+            "def cga_decode(point: Tensor) -> Tensor:",
             '    """',
-            f"    Decode UPGC point to {dim}D vector.",
+            f"    Decode CGA point to {dim}D vector.",
             "",
             f"    Extracts the first {dim} components (euclidean part).",
             "",
             "    Args:",
-            f"        point: UPGC point, shape (..., {point_count})",
+            f"        point: CGA point, shape (..., {point_count})",
             "",
             "    Returns:",
             f"        {dim}D vector, shape (..., {dim})",
@@ -1049,7 +1049,7 @@ from typing import Tuple
             "",
             "    Args:",
             f"        ev: EvenVersor, shape (..., {even_versor_count})",
-            f"        point: UPGC point, shape (..., {point_count})",
+            f"        point: CGA point, shape (..., {point_count})",
             "",
             "    Returns:",
             f"        Transformed point, shape (..., {point_count})",
@@ -1301,7 +1301,7 @@ from typing import Tuple
         dim = self._euclidean_dim
         even_versor_indices = self.algebra.get_even_versor_indices()
         even_versor_count = len(even_versor_indices)
-        point_indices = self.algebra.get_upgc_point_indices()
+        point_indices = self.algebra.get_point_indices()
         point_count = len(point_indices)
 
         lines = [
@@ -1318,7 +1318,7 @@ from typing import Tuple
             "",
             "    Args:",
             f"        similitude: Similitude, shape (..., {even_versor_count})",
-            f"        point: UPGC point, shape (..., {point_count})",
+            f"        point: CGA point, shape (..., {point_count})",
             "",
             "    Returns:",
             f"        Transformed point, shape (..., {point_count})",
@@ -2146,7 +2146,7 @@ def generate_cgand_functional(euclidean_dim: int, output_path: str) -> None:
     print(f"  - Algebra: CGA{euclidean_dim}D Cl({euclidean_dim+1},1)")
     print(f"  - Blade count: {generator.algebra.blade_count}")
     print(f"  - EvenVersor components: {len(generator.algebra.get_even_versor_indices())}")
-    print(f"  - Point components: {len(generator.algebra.get_upgc_point_indices())}")
+    print(f"  - Point components: {len(generator.algebra.get_point_indices())}")
 
 
 if __name__ == "__main__":

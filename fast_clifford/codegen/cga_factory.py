@@ -170,11 +170,11 @@ def get_product_table(euclidean_dim: int) -> Dict[Tuple[int, int], Tuple[int, in
     return table
 
 
-def get_upgc_point_indices(euclidean_dim: int) -> Tuple[int, ...]:
+def get_point_indices(euclidean_dim: int) -> Tuple[int, ...]:
     """
-    取得 UPGC Point 的非零 blade 索引。
+    取得 CGA Point 的非零 blade 索引。
 
-    UPGC Point 只有 Grade 1 分量。
+    CGA Point 只有 Grade 1 分量。
 
     Args:
         euclidean_dim: 歐幾里得空間維度
@@ -327,8 +327,8 @@ if __name__ == "__main__":
         grade_indices = compute_grade_indices(dim)
         print(f"Grade indices: {grade_indices}")
 
-        upgc_indices = get_upgc_point_indices(dim)
-        print(f"UPGC Point indices: {upgc_indices} ({len(upgc_indices)} components)")
+        point_indices = get_point_indices(dim)
+        print(f"CGA Point indices: {point_indices} ({len(point_indices)} components)")
 
         even_versor_indices = get_even_versor_indices(dim)
         print(f"EvenVersor indices: {even_versor_indices} ({len(even_versor_indices)} components)")

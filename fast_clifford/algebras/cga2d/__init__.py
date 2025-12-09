@@ -9,7 +9,7 @@ Algebra properties:
 - Conformal basis: e+, e-
 - Signature: (+, +, +, -)
 - Total blades: 16
-- UPGC Point: 4 components
+- CGA Point: 4 components
 - EvenVersor: 8 components
 """
 
@@ -23,7 +23,7 @@ from .algebra import (
     GRADE_2_INDICES,
     GRADE_3_INDICES,
     GRADE_4_INDICES,
-    UPGC_POINT_MASK,
+    POINT_MASK,
     EVEN_VERSOR_MASK,
     REVERSE_SIGNS,
     EVEN_VERSOR_REVERSE_SIGNS,
@@ -43,8 +43,8 @@ from .algebra import (
 from .functional import (
     geometric_product_full,
     reverse_full,
-    upgc_encode,
-    upgc_decode,
+    cga_encode,
+    cga_decode,
     reverse_even_versor,
     sandwich_product_sparse,
     # Extended operations
@@ -80,7 +80,7 @@ __all__ = [
     "GRADE_2_INDICES",
     "GRADE_3_INDICES",
     "GRADE_4_INDICES",
-    "UPGC_POINT_MASK",
+    "POINT_MASK",
     "EVEN_VERSOR_MASK",
     "REVERSE_SIGNS",
     "EVEN_VERSOR_REVERSE_SIGNS",
@@ -99,8 +99,8 @@ __all__ = [
     # Core operations
     "geometric_product_full",
     "reverse_full",
-    "upgc_encode",
-    "upgc_decode",
+    "cga_encode",
+    "cga_decode",
     "reverse_even_versor",
     "sandwich_product_sparse",
     # Extended operations

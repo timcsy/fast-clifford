@@ -15,19 +15,19 @@ import tempfile
 import os
 
 from fast_clifford.algebras.cga4d.layers import (
-    CGA4DCareLayer,
-    UPGC4DEncoder,
-    UPGC4DDecoder,
-    CGA4DTransformPipeline
+    CliffordTransformLayer,
+    CGAEncoder,
+    CGADecoder,
+    CGAPipeline
 )
 
 
 class TestONNXExport:
     """ONNX export tests with opset 17."""
 
-    def test_cga4d_care_layer_export(self):
-        """Test CGA4DCareLayer exports to ONNX."""
-        layer = CGA4DCareLayer()
+    def test_cga4d_transform_layer_export(self):
+        """Test CliffordTransformLayer exports to ONNX."""
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(1, 32)
         point = torch.randn(1, 6)
@@ -59,8 +59,8 @@ class TestONNXExport:
                 os.unlink(f.name)
 
     def test_upgc4d_encoder_export(self):
-        """Test UPGC4DEncoder exports to ONNX."""
-        encoder = UPGC4DEncoder()
+        """Test CGAEncoder exports to ONNX."""
+        encoder = CGAEncoder()
 
         x = torch.randn(1, 4)
 
@@ -87,8 +87,8 @@ class TestONNXExport:
                 os.unlink(f.name)
 
     def test_upgc4d_decoder_export(self):
-        """Test UPGC4DDecoder exports to ONNX."""
-        decoder = UPGC4DDecoder()
+        """Test CGADecoder exports to ONNX."""
+        decoder = CGADecoder()
 
         point = torch.randn(1, 6)
 
@@ -115,8 +115,8 @@ class TestONNXExport:
                 os.unlink(f.name)
 
     def test_full_pipeline_export(self):
-        """Test CGA4DTransformPipeline exports to ONNX."""
-        pipeline = CGA4DTransformPipeline()
+        """Test CGAPipeline exports to ONNX."""
+        pipeline = CGAPipeline()
 
         ev = torch.randn(1, 32)
         x = torch.randn(1, 4)
@@ -155,9 +155,9 @@ class TestONNXNoLoops:
             op_types.add(node.op_type)
         return op_types
 
-    def test_cga4d_care_layer_no_loops(self):
-        """Verify CGA4DCareLayer has no Loop nodes."""
-        layer = CGA4DCareLayer()
+    def test_cga4d_transform_layer_no_loops(self):
+        """Verify CliffordTransformLayer has no Loop nodes."""
+        layer = CliffordTransformLayer()
         ev = torch.randn(1, 32)
         point = torch.randn(1, 6)
 
@@ -184,8 +184,8 @@ class TestONNXNoLoops:
                 os.unlink(f.name)
 
     def test_full_pipeline_no_loops(self):
-        """Verify CGA4DTransformPipeline has no Loop nodes."""
-        pipeline = CGA4DTransformPipeline()
+        """Verify CGAPipeline has no Loop nodes."""
+        pipeline = CGAPipeline()
         ev = torch.randn(1, 32)
         x = torch.randn(1, 4)
 
@@ -240,9 +240,9 @@ class TestONNXBasicOperators:
             op_types.add(node.op_type)
         return op_types
 
-    def test_cga4d_care_layer_basic_ops(self):
-        """Verify CGA4DCareLayer uses only basic operators."""
-        layer = CGA4DCareLayer()
+    def test_cga4d_transform_layer_basic_ops(self):
+        """Verify CliffordTransformLayer uses only basic operators."""
+        layer = CliffordTransformLayer()
         ev = torch.randn(1, 32)
         point = torch.randn(1, 6)
 
@@ -269,7 +269,7 @@ class TestONNXBasicOperators:
 
     def test_report_ops_used(self):
         """Report all ops used by the full pipeline."""
-        pipeline = CGA4DTransformPipeline()
+        pipeline = CGAPipeline()
         ev = torch.randn(1, 32)
         x = torch.randn(1, 4)
 
@@ -286,7 +286,7 @@ class TestONNXBasicOperators:
                 model = onnx.load(f.name)
                 op_types = self._get_all_op_types(model)
 
-                print(f"\nOps used by CGA4DTransformPipeline: {sorted(op_types)}")
+                print(f"\nOps used by CGAPipeline: {sorted(op_types)}")
 
                 op_counts = {}
                 for node in model.graph.node:
@@ -307,7 +307,7 @@ class TestONNXNumericalEquivalence:
         """Compare ONNX inference to PyTorch inference."""
         import numpy as np
 
-        layer = CGA4DCareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(1, 32)
         point = torch.randn(1, 6)
 
@@ -347,7 +347,7 @@ class TestONNXNumericalEquivalence:
         """Compare full pipeline ONNX to PyTorch."""
         import numpy as np
 
-        pipeline = CGA4DTransformPipeline()
+        pipeline = CGAPipeline()
         ev = torch.randn(1, 32)
         x = torch.randn(1, 4)
 

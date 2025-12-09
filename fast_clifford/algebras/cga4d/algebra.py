@@ -254,7 +254,7 @@ def get_blade_info() -> List[Dict]:
 
 
 # Sparsity masks for common multivector types
-UPGC_POINT_MASK = GRADE_1_INDICES  # Grade 1 only (6 components)
+POINT_MASK = GRADE_1_INDICES  # Grade 1 only (6 components)
 
 # EvenVersor mask: Grade 0, 2, 4 (1 + 15 + 15 = 31 components)
 EVEN_VERSOR_MASK = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES

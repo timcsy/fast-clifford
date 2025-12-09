@@ -17,12 +17,21 @@ Example:
 
 from .base import CGAAlgebraBase
 from .registry import HardcodedCGAWrapper
+from .multivector import Multivector, EvenVersor, Similitude
+from .layers import CliffordTransformLayer, CGAEncoder, CGADecoder, CGAPipeline
 
 __all__ = [
     "CGA",
     "Cl",
     "CGAAlgebraBase",
     "HardcodedCGAWrapper",
+    "Multivector",
+    "EvenVersor",
+    "Similitude",
+    "CliffordTransformLayer",
+    "CGAEncoder",
+    "CGADecoder",
+    "CGAPipeline",
 ]
 
 

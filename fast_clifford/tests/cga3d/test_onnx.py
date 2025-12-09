@@ -14,35 +14,35 @@ import tempfile
 import os
 
 from fast_clifford.algebras.cga3d.layers import (
-    CGACareLayer,
-    UPGCEncoder,
-    UPGCDecoder,
-    CGATransformPipeline
+    CliffordTransformLayer,
+    CGAEncoder,
+    CGADecoder,
+    CGAPipeline
 )
 
 
 class TestONNXExport:
     """T039: ONNX export tests with opset 17."""
 
-    def test_cga_care_layer_export(self):
-        """Test CGACareLayer exports to ONNX."""
-        layer = CGACareLayer()
+    def test_cga_transform_layer_export(self):
+        """Test CliffordTransformLayer exports to ONNX."""
+        layer = CliffordTransformLayer()
 
         # Create example inputs
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "point"],
+                    input_names=["ev", "point"],
                     output_names=["output"],
                     dynamic_axes={
-                        "motor": {0: "batch_size"},
+                        "ev": {0: "batch_size"},
                         "point": {0: "batch_size"},
                         "output": {0: "batch_size"}
                     }
@@ -60,9 +60,9 @@ class TestONNXExport:
             finally:
                 os.unlink(f.name)
 
-    def test_upgc_encoder_export(self):
-        """Test UPGCEncoder exports to ONNX."""
-        encoder = UPGCEncoder()
+    def test_cga_encoder_export(self):
+        """Test CGAEncoder exports to ONNX."""
+        encoder = CGAEncoder()
 
         x = torch.randn(1, 3)
 
@@ -88,9 +88,9 @@ class TestONNXExport:
             finally:
                 os.unlink(f.name)
 
-    def test_upgc_decoder_export(self):
-        """Test UPGCDecoder exports to ONNX."""
-        decoder = UPGCDecoder()
+    def test_cga_decoder_export(self):
+        """Test CGADecoder exports to ONNX."""
+        decoder = CGADecoder()
 
         point = torch.randn(1, 5)
 
@@ -117,23 +117,23 @@ class TestONNXExport:
                 os.unlink(f.name)
 
     def test_full_pipeline_export(self):
-        """Test CGATransformPipeline exports to ONNX."""
-        pipeline = CGATransformPipeline()
+        """Test CGAPipeline exports to ONNX."""
+        pipeline = CGAPipeline()
 
-        motor = torch.randn(1, 16)
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "x"],
+                    input_names=["ev", "x"],
                     output_names=["y"],
                     dynamic_axes={
-                        "motor": {0: "batch_size"},
+                        "ev": {0: "batch_size"},
                         "x": {0: "batch_size"},
                         "y": {0: "batch_size"}
                     }
@@ -159,17 +159,17 @@ class TestONNXNoLoops:
             op_types.add(node.op_type)
         return op_types
 
-    def test_cga_care_layer_no_loops(self):
-        """Verify CGACareLayer has no Loop nodes."""
-        layer = CGACareLayer()
-        motor = torch.randn(1, 16)
+    def test_cga_transform_layer_no_loops(self):
+        """Verify CliffordTransformLayer has no Loop nodes."""
+        layer = CliffordTransformLayer()
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17
                 )
@@ -189,16 +189,16 @@ class TestONNXNoLoops:
                 os.unlink(f.name)
 
     def test_full_pipeline_no_loops(self):
-        """Verify CGATransformPipeline has no Loop nodes."""
-        pipeline = CGATransformPipeline()
-        motor = torch.randn(1, 16)
+        """Verify CGAPipeline has no Loop nodes."""
+        pipeline = CGAPipeline()
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17
                 )
@@ -246,17 +246,17 @@ class TestONNXBasicOperators:
             op_types.add(node.op_type)
         return op_types
 
-    def test_cga_care_layer_basic_ops(self):
-        """Verify CGACareLayer uses only basic operators."""
-        layer = CGACareLayer()
-        motor = torch.randn(1, 16)
+    def test_cga_transform_layer_basic_ops(self):
+        """Verify CliffordTransformLayer uses only basic operators."""
+        layer = CliffordTransformLayer()
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17
                 )
@@ -285,15 +285,15 @@ class TestONNXBasicOperators:
 
     def test_report_ops_used(self):
         """Report all ops used by the full pipeline."""
-        pipeline = CGATransformPipeline()
-        motor = torch.randn(1, 16)
+        pipeline = CGAPipeline()
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17
                 )
@@ -302,7 +302,7 @@ class TestONNXBasicOperators:
                 model = onnx.load(f.name)
                 op_types = self._get_all_op_types(model)
 
-                print(f"\nOps used by CGATransformPipeline: {sorted(op_types)}")
+                print(f"\nOps used by CGAPipeline: {sorted(op_types)}")
 
                 # Count nodes by type
                 op_counts = {}
@@ -325,21 +325,21 @@ class TestONNXNumericalEquivalence:
         """Compare ONNX inference to PyTorch inference."""
         import numpy as np
 
-        layer = CGACareLayer()
-        motor = torch.randn(1, 16)
+        layer = CliffordTransformLayer()
+        ev = torch.randn(1, 16)
         point = torch.randn(1, 5)
 
         # PyTorch result
-        pytorch_result = layer(motor, point).detach().numpy()
+        pytorch_result = layer(ev, point).detach().numpy()
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "point"],
+                    input_names=["ev", "point"],
                     output_names=["output"]
                 )
 
@@ -350,7 +350,7 @@ class TestONNXNumericalEquivalence:
                 onnx_result = session.run(
                     None,
                     {
-                        "motor": motor.numpy(),
+                        "ev": ev.numpy(),
                         "point": point.numpy()
                     }
                 )[0]
@@ -368,21 +368,21 @@ class TestONNXNumericalEquivalence:
         """Compare full pipeline ONNX to PyTorch."""
         import numpy as np
 
-        pipeline = CGATransformPipeline()
-        motor = torch.randn(1, 16)
+        pipeline = CGAPipeline()
+        ev = torch.randn(1, 16)
         x = torch.randn(1, 3)
 
         # PyTorch result
-        pytorch_result = pipeline(motor, x).detach().numpy()
+        pytorch_result = pipeline(ev, x).detach().numpy()
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "x"],
+                    input_names=["ev", "x"],
                     output_names=["y"]
                 )
 
@@ -392,7 +392,7 @@ class TestONNXNumericalEquivalence:
                 onnx_result = session.run(
                     None,
                     {
-                        "motor": motor.numpy(),
+                        "ev": ev.numpy(),
                         "x": x.numpy()
                     }
                 )[0]

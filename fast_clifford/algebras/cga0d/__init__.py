@@ -9,8 +9,8 @@ Algebra properties:
 - Conformal basis: e+, e-
 - Signature: (+, -)
 - Total blades: 4
-- UPGC Point: 2 components
-- Motor: 2 components
+- CGA Point: 2 components
+- EvenVersor: 2 components
 """
 
 from .algebra import (
@@ -21,10 +21,10 @@ from .algebra import (
     GRADE_0_INDICES,
     GRADE_1_INDICES,
     GRADE_2_INDICES,
-    UPGC_POINT_MASK,
-    MOTOR_MASK,
+    POINT_MASK,
+    EVEN_VERSOR_MASK,
     REVERSE_SIGNS,
-    MOTOR_REVERSE_SIGNS,
+    EVEN_VERSOR_REVERSE_SIGNS,
     BLADE_NAMES,
     get_layout,
     get_blades,
@@ -39,20 +39,33 @@ from .algebra import (
 from .functional import (
     geometric_product_full,
     reverse_full,
-    upgc_encode,
-    upgc_decode,
-    reverse_motor,
+    cga_encode,
+    cga_decode,
+    reverse_even_versor,
     sandwich_product_sparse,
+    # Extended operations
+    compose_even_versor,
+    compose_similitude,
+    sandwich_product_similitude,
+    inner_product_full,
+    outer_product_full,
+    left_contraction_full,
+    right_contraction_full,
+    grade_select,
+    dual,
+    normalize,
+    norm_squared,
+    exp_bivector,
+    bivector_squared_scalar,
+    structure_normalize,
+    soft_structure_normalize,
 )
 
-from .layers import (
-    CGA0DCareLayer,
-    UPGC0DEncoder,
-    UPGC0DDecoder,
-    CGA0DTransformPipeline,
-)
+from . import functional
 
 __all__ = [
+    # Module
+    "functional",
     # Constants
     "EUCLIDEAN_DIM",
     "BLADE_COUNT",
@@ -61,10 +74,10 @@ __all__ = [
     "GRADE_0_INDICES",
     "GRADE_1_INDICES",
     "GRADE_2_INDICES",
-    "UPGC_POINT_MASK",
-    "MOTOR_MASK",
+    "POINT_MASK",
+    "EVEN_VERSOR_MASK",
     "REVERSE_SIGNS",
-    "MOTOR_REVERSE_SIGNS",
+    "EVEN_VERSOR_REVERSE_SIGNS",
     "BLADE_NAMES",
     # Algebra functions
     "get_layout",
@@ -75,16 +88,27 @@ __all__ = [
     "verify_null_basis",
     "get_blade_grade",
     "get_blade_info",
-    # PyTorch operations
+    # Core operations
     "geometric_product_full",
     "reverse_full",
-    "upgc_encode",
-    "upgc_decode",
-    "reverse_motor",
+    "cga_encode",
+    "cga_decode",
+    "reverse_even_versor",
     "sandwich_product_sparse",
-    # PyTorch layers
-    "CGA0DCareLayer",
-    "UPGC0DEncoder",
-    "UPGC0DDecoder",
-    "CGA0DTransformPipeline",
+    # Extended operations
+    "compose_even_versor",
+    "compose_similitude",
+    "sandwich_product_similitude",
+    "inner_product_full",
+    "outer_product_full",
+    "left_contraction_full",
+    "right_contraction_full",
+    "grade_select",
+    "dual",
+    "normalize",
+    "norm_squared",
+    "exp_bivector",
+    "bivector_squared_scalar",
+    "structure_normalize",
+    "soft_structure_normalize",
 ]

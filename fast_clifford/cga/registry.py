@@ -70,7 +70,7 @@ class HardcodedCGAWrapper(CGAAlgebraBase):
 
     @property
     def point_count(self) -> int:
-        return len(self._module.UPGC_POINT_MASK)
+        return len(self._module.POINT_MASK)
 
     @property
     def even_versor_count(self) -> int:
@@ -86,11 +86,11 @@ class HardcodedCGAWrapper(CGAAlgebraBase):
     # Core Operations
     # =========================================================================
 
-    def upgc_encode(self, x: Tensor) -> Tensor:
-        return self._module.upgc_encode(x)
+    def cga_encode(self, x: Tensor) -> Tensor:
+        return self._module.cga_encode(x)
 
-    def upgc_decode(self, point: Tensor) -> Tensor:
-        return self._module.upgc_decode(point)
+    def cga_decode(self, point: Tensor) -> Tensor:
+        return self._module.cga_decode(point)
 
     def geometric_product_full(self, a: Tensor, b: Tensor) -> Tensor:
         return self._module.geometric_product_full(a, b)
@@ -108,14 +108,14 @@ class HardcodedCGAWrapper(CGAAlgebraBase):
     # Layer Factory Methods (using unified layers)
     # =========================================================================
 
-    def get_care_layer(self) -> nn.Module:
-        """Get CareLayer (CliffordTransformLayer) for this dimension."""
+    def get_transform_layer(self) -> nn.Module:
+        """Get CliffordTransformLayer for this dimension."""
         from .layers import CliffordTransformLayer
         return CliffordTransformLayer(self)
 
-    def get_transform_layer(self) -> nn.Module:
-        """Get CliffordTransformLayer for this dimension (alias for get_care_layer)."""
-        return self.get_care_layer()
+    def get_care_layer(self) -> nn.Module:
+        """Get CareLayer for this dimension (alias for get_transform_layer, deprecated)."""
+        return self.get_transform_layer()
 
     def get_encoder(self) -> nn.Module:
         """Get CGAEncoder for this dimension."""

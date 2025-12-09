@@ -121,18 +121,18 @@ class TestReverse:
 class TestUPGC:
     """Test UPGC encoding and decoding."""
 
-    def test_upgc_encode_shape(self):
+    def test_cga_encode_shape(self):
         """Test that encoding produces correct shape."""
         batch_size = 8
         x = torch.randn(batch_size, 0)  # 0D input
-        point = cga0d.upgc_encode(x)
+        point = cga0d.cga_encode(x)
         assert point.shape == (batch_size, 2)
 
-    def test_upgc_encode_is_origin(self):
+    def test_cga_encode_is_origin(self):
         """Test that encoded point is always the origin n_o."""
         batch_size = 8
         x = torch.randn(batch_size, 0)
-        point = cga0d.upgc_encode(x)
+        point = cga0d.cga_encode(x)
 
         # Origin n_o = 0.5 * (e- - e+) = -0.5*e+ + 0.5*e-
         expected_e_plus = torch.full((batch_size,), -0.5)
@@ -141,11 +141,11 @@ class TestUPGC:
         assert torch.allclose(point[..., 0], expected_e_plus, atol=1e-6)
         assert torch.allclose(point[..., 1], expected_e_minus, atol=1e-6)
 
-    def test_upgc_decode_shape(self):
+    def test_cga_decode_shape(self):
         """Test that decoding produces correct shape."""
         batch_size = 8
         point = torch.randn(batch_size, 2)
-        x = cga0d.upgc_decode(point)
+        x = cga0d.cga_decode(point)
         assert x.shape == (batch_size, 0)
 
 
@@ -179,7 +179,7 @@ class TestSandwichProduct:
         angle = torch.rand(batch_size) * 2 * np.pi
         ev = torch.stack([torch.cos(angle / 2), torch.sin(angle / 2)], dim=-1)
 
-        point = cga0d.upgc_encode(torch.randn(batch_size, 0))
+        point = cga0d.cga_encode(torch.randn(batch_size, 0))
         result = cga0d.sandwich_product_sparse(ev, point)
 
         assert result.shape == (batch_size, 2)

@@ -410,6 +410,34 @@ fast-clifford 在批次處理場景下提供顯著的效能優勢：
 
 ---
 
+## 14. Similitude 操作效能基準 (T048/T050)
+
+**測試日期**: 2025-12-09
+**測試配置**: batch_size=1024, warmup=100, iterations=1000
+
+### 14.1 compose_similitude vs compose_even_versor (T048)
+
+| CGA | compose_even_versor (ms) | compose_similitude (ms) | 比率 |
+|-----|--------------------------|-------------------------|------|
+| CGA2D | 0.1069 | 0.1061 | **0.99x** |
+| CGA3D | 0.4494 | 0.4360 | **0.97x** |
+
+### 14.2 sandwich_product_similitude vs sandwich_product_sparse (T050)
+
+| CGA | sandwich_sparse (ms) | sandwich_similitude (ms) | 比率 |
+|-----|----------------------|--------------------------|------|
+| CGA2D | 0.2314 | 0.2122 | **0.92x** |
+| CGA3D | 0.6443 | 0.6434 | **1.00x** |
+
+### 14.3 分析
+
+- **compose_similitude**: 效能與 compose_even_versor 相當（97-99%）
+- **sandwich_product_similitude**: 效能與 sandwich_product_sparse 相當（92-100%）
+- Similitude 使用相同的 EvenVersor 表示，因此效能相近
+- CGA2D sandwich_product_similitude 略快 8%，可能因稀疏模式不同
+
+---
+
 ## 附錄：測試環境詳情
 
 ```

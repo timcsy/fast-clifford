@@ -467,14 +467,14 @@ class TestMultiplicationCount:
             get_sandwich_product_terms,
             count_multiplication_ops,
             EVEN_VERSOR_FULL_INDICES,
-            UPGC_POINT_FULL_INDICES,
+            POINT_FULL_INDICES,
         )
         from fast_clifford.algebras.cga3d.algebra import get_product_table, REVERSE_SIGNS
 
         terms = get_sandwich_product_terms(
             get_product_table(),
             EVEN_VERSOR_FULL_INDICES,
-            UPGC_POINT_FULL_INDICES,
+            POINT_FULL_INDICES,
             REVERSE_SIGNS
         )
 
@@ -514,7 +514,7 @@ class TestEdgeCases:
 
         # Zero 3D vector -> encode to UPGC point
         zero_3d = torch.zeros(1, 3)
-        point = functional_module.upgc_encode(zero_3d)
+        point = functional_module.cga_encode(zero_3d)
 
         result = functional_module.sandwich_product_sparse(ev, point)
 
@@ -534,20 +534,20 @@ class TestEdgeCases:
             assert torch.allclose(result, point, atol=1e-6), \
                 "Identity EvenVersor must preserve point"
 
-    def test_upgc_encode_decode_roundtrip(self, functional_module):
+    def test_cga_encode_decode_roundtrip(self, functional_module):
         """Test UPGC encode/decode roundtrip."""
         x_3d = torch.tensor([[1.0, 2.0, 3.0]])
 
-        encoded = functional_module.upgc_encode(x_3d)
-        decoded = functional_module.upgc_decode(encoded)
+        encoded = functional_module.cga_encode(x_3d)
+        decoded = functional_module.cga_decode(encoded)
 
         assert torch.allclose(decoded, x_3d, atol=1e-6), \
             f"Roundtrip failed: {x_3d} -> {encoded} -> {decoded}"
 
-    def test_upgc_encode_origin(self, functional_module):
+    def test_cga_encode_origin(self, functional_module):
         """Test UPGC encoding of origin."""
         origin = torch.zeros(1, 3)
-        point = functional_module.upgc_encode(origin)
+        point = functional_module.cga_encode(origin)
 
         # At origin: e1=e2=e3=0, e+ = -0.5, e- = 0.5
         expected = torch.tensor([[0.0, 0.0, 0.0, -0.5, 0.5]])
@@ -557,17 +557,17 @@ class TestEdgeCases:
 
 
 # =============================================================================
-# T037-T038: CGACareLayer Tests
+# T037-T038: CliffordTransformLayer Tests
 # =============================================================================
 
-class TestCGACareLayer:
-    """Test CGACareLayer module."""
+class TestCliffordTransformLayer:
+    """Test CliffordTransformLayer module."""
 
     def test_layer_basic_functionality(self):
         """Test basic forward pass."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
 
         # Identity EvenVersor
         ev = torch.zeros(1, 16)
@@ -582,9 +582,9 @@ class TestCGACareLayer:
 
     def test_layer_batched(self):
         """Test batched computation."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
 
         batch_size = 10
         ev = torch.randn(batch_size, 16)
@@ -598,9 +598,9 @@ class TestCGACareLayer:
 
     def test_precision_handling_float16(self):
         """Test that float16 inputs are handled correctly."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
 
         # Identity EvenVersor in float16
         ev = torch.zeros(1, 16, dtype=torch.float16)
@@ -617,9 +617,9 @@ class TestCGACareLayer:
 
     def test_precision_handling_float32(self):
         """Test that float32 inputs produce float32 outputs."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
 
         ev = torch.randn(1, 16, dtype=torch.float32)
         ev[0, 0] = 1.0
@@ -631,14 +631,14 @@ class TestCGACareLayer:
         assert result.dtype == torch.float32
 
 
-class TestCGATransformPipeline:
+class TestCGAPipeline:
     """Test complete CGA transformation pipeline."""
 
     def test_pipeline_roundtrip(self):
         """Test that identity EvenVersor preserves 3D point."""
-        from fast_clifford.algebras.cga3d.layers import CGATransformPipeline
+        from fast_clifford.algebras.cga3d.layers import CGAPipeline
 
-        pipeline = CGATransformPipeline()
+        pipeline = CGAPipeline()
 
         # Identity EvenVersor
         ev = torch.zeros(1, 16)
@@ -653,10 +653,10 @@ class TestCGATransformPipeline:
 
     def test_pipeline_rotation(self):
         """Test rotation transformation."""
-        from fast_clifford.algebras.cga3d.layers import CGATransformPipeline
+        from fast_clifford.algebras.cga3d.layers import CGAPipeline
         import numpy as np
 
-        pipeline = CGATransformPipeline()
+        pipeline = CGAPipeline()
 
         # Rotation around z-axis by 90 degrees
         # In GA, rotor R = cos(θ/2) + sin(θ/2)e12 rotates in the e1→e2 plane
@@ -683,9 +683,9 @@ class TestCrossPlatform:
 
     def test_cpu_computation(self):
         """Test computation on CPU."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 16, device='cpu')
         point = torch.randn(4, 5, device='cpu')
 
@@ -699,9 +699,9 @@ class TestCrossPlatform:
     )
     def test_cuda_computation(self):
         """Test computation on CUDA."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer().cuda()
+        layer = CliffordTransformLayer().cuda()
         ev = torch.randn(4, 16, device='cuda')
         point = torch.randn(4, 5, device='cuda')
 
@@ -715,9 +715,9 @@ class TestCrossPlatform:
     )
     def test_mps_computation(self):
         """Test computation on MPS (Apple Silicon)."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer().to('mps')
+        layer = CliffordTransformLayer().to('mps')
         ev = torch.randn(4, 16, device='mps')
         point = torch.randn(4, 5, device='mps')
 
@@ -746,9 +746,9 @@ class TestPrecision:
 
     def test_float32_precision(self):
         """Test computation in float32."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 16, dtype=torch.float32)
         point = torch.randn(4, 5, dtype=torch.float32)
 
@@ -757,9 +757,9 @@ class TestPrecision:
 
     def test_float16_precision(self):
         """Test computation in float16 (with internal float32)."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 16, dtype=torch.float16)
         point = torch.randn(4, 5, dtype=torch.float16)
 
@@ -769,9 +769,9 @@ class TestPrecision:
 
     def test_float16_vs_float32_consistency(self):
         """Verify float16 produces similar results to float32."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
 
         # Create inputs in float32
         ev_f32 = torch.randn(4, 16, dtype=torch.float32)
@@ -793,9 +793,9 @@ class TestPrecision:
 
     def test_bfloat16_precision(self):
         """Test computation in bfloat16."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 16, dtype=torch.bfloat16)
         point = torch.randn(4, 5, dtype=torch.bfloat16)
 
@@ -804,9 +804,9 @@ class TestPrecision:
 
     def test_mixed_precision_input_error(self):
         """Test that mismatched dtypes are handled."""
-        from fast_clifford.algebras.cga3d.layers import CGACareLayer
+        from fast_clifford.algebras.cga3d.layers import CliffordTransformLayer
 
-        layer = CGACareLayer()
+        layer = CliffordTransformLayer()
         ev = torch.randn(4, 16, dtype=torch.float32)
         point = torch.randn(4, 5, dtype=torch.float16)
 

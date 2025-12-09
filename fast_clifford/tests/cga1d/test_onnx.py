@@ -28,7 +28,7 @@ class TestONNXExport:
         """Get CGA1D algebra instance."""
         return CGA(1)
 
-    def test_cga1d_care_layer_export(self, algebra):
+    def test_cga1d_transform_layer_export(self, algebra):
         """CliffordTransformLayer can be exported to ONNX."""
         layer = CliffordTransformLayer(algebra)
 
@@ -142,7 +142,7 @@ class TestONNXNoLoops:
         """Get CGA1D algebra instance."""
         return CGA(1)
 
-    def test_cga1d_care_layer_no_loops(self, algebra):
+    def test_cga1d_transform_layer_no_loops(self, algebra):
         """CliffordTransformLayer ONNX has no Loop nodes."""
         pytest.importorskip("onnx")
         import onnx

@@ -3,8 +3,8 @@ Unified CGA Layer Classes
 
 Provides dimension-agnostic PyTorch layers for CGA operations:
 - CliffordTransformLayer: Sandwich product layer (M x X x ~M)
-- CGAEncoder: Euclidean to UPGC encoding
-- CGADecoder: UPGC to Euclidean decoding
+- CGAEncoder: Euclidean to CGA encoding
+- CGADecoder: CGA to Euclidean decoding
 - CGAPipeline: Complete encode-transform-decode pipeline
 """
 
@@ -22,7 +22,7 @@ class CliffordTransformLayer(nn.Module):
     Unified Clifford transform layer (sandwich product).
 
     Computes M x X x ~M where M is an EvenVersor/Similitude
-    and X is a UPGC point.
+    and X is a CGA point.
 
     Args:
         algebra: CGA algebra instance
@@ -47,7 +47,7 @@ class CliffordTransformLayer(nn.Module):
 
         Args:
             versor: EvenVersor/Similitude, shape (..., even_versor_count)
-            point: UPGC point, shape (..., point_count)
+            point: CGA point, shape (..., point_count)
 
         Returns:
             Transformed point, shape (..., point_count)
@@ -68,10 +68,10 @@ class CliffordTransformLayer(nn.Module):
 
 class CGAEncoder(nn.Module):
     """
-    Euclidean to UPGC point encoder.
+    Euclidean to CGA point encoder.
 
     Encodes n-dimensional Euclidean coordinates to (n+2)-dimensional
-    UPGC (Up-Projected Geometric Conformal) point representation.
+    CGA point representation.
 
     Args:
         algebra: CGA algebra instance
@@ -85,29 +85,29 @@ class CGAEncoder(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         """
-        Encode Euclidean coordinates to UPGC point.
+        Encode Euclidean coordinates to CGA point.
 
         Args:
             x: Euclidean coordinates, shape (..., n)
 
         Returns:
-            UPGC point, shape (..., n+2)
+            CGA point, shape (..., n+2)
         """
         original_dtype = x.dtype
 
         if self.use_fp32:
             x = x.to(torch.float32)
 
-        result = self.algebra.upgc_encode(x)
+        result = self.algebra.cga_encode(x)
 
         return result.to(original_dtype)
 
 
 class CGADecoder(nn.Module):
     """
-    UPGC point to Euclidean decoder.
+    CGA point to Euclidean decoder.
 
-    Decodes (n+2)-dimensional UPGC point to n-dimensional
+    Decodes (n+2)-dimensional CGA point to n-dimensional
     Euclidean coordinates.
 
     Args:
@@ -120,15 +120,15 @@ class CGADecoder(nn.Module):
 
     def forward(self, point: Tensor) -> Tensor:
         """
-        Decode UPGC point to Euclidean coordinates.
+        Decode CGA point to Euclidean coordinates.
 
         Args:
-            point: UPGC point, shape (..., n+2)
+            point: CGA point, shape (..., n+2)
 
         Returns:
             Euclidean coordinates, shape (..., n)
         """
-        return self.algebra.upgc_decode(point)
+        return self.algebra.cga_decode(point)
 
 
 class CGAPipeline(nn.Module):
@@ -136,9 +136,9 @@ class CGAPipeline(nn.Module):
     Complete CGA transformation pipeline.
 
     Combines encoding, transformation, and decoding into a single module:
-    1. Encode Euclidean -> UPGC
+    1. Encode Euclidean -> CGA
     2. Transform via sandwich product
-    3. Decode UPGC -> Euclidean
+    3. Decode CGA -> Euclidean
 
     Args:
         algebra: CGA algebra instance

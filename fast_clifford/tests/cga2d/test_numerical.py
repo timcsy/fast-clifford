@@ -223,7 +223,7 @@ class TestUPGCEncoding:
     def test_encode_origin(self):
         """Encoding origin gives n_o."""
         x = torch.zeros(2)
-        point = cga2d.upgc_encode(x)
+        point = cga2d.cga_encode(x)
 
         # n_o = 0.5*(e- - e+) -> e+ = -0.5, e- = 0.5
         assert point[0].item() == pytest.approx(0.0)  # e1
@@ -234,7 +234,7 @@ class TestUPGCEncoding:
     def test_encode_unit_x(self):
         """Encoding (1,0) gives correct point."""
         x = torch.tensor([1.0, 0.0])
-        point = cga2d.upgc_encode(x)
+        point = cga2d.cga_encode(x)
 
         # X = n_o + x + 0.5|x|² n_inf
         # |x|² = 1, so:
@@ -250,8 +250,8 @@ class TestUPGCEncoding:
         """Decode inverts encode for various points."""
         for _ in range(10):
             x = torch.randn(2)
-            point = cga2d.upgc_encode(x)
-            decoded = cga2d.upgc_decode(point)
+            point = cga2d.cga_encode(x)
+            decoded = cga2d.cga_decode(point)
             assert torch.allclose(x, decoded)
 
     def test_batch_encode_decode(self):
@@ -259,8 +259,8 @@ class TestUPGCEncoding:
         batch_size = 8
         x = torch.randn(batch_size, 2)
 
-        points = cga2d.upgc_encode(x)
-        decoded = cga2d.upgc_decode(points)
+        points = cga2d.cga_encode(x)
+        decoded = cga2d.cga_decode(points)
 
         assert points.shape == (batch_size, 4)
         assert decoded.shape == (batch_size, 2)
@@ -280,7 +280,7 @@ class TestSandwichProduct:
         ev[0] = 1.0  # scalar = 1
 
         x = torch.randn(2)
-        point = cga2d.upgc_encode(x)
+        point = cga2d.cga_encode(x)
 
         result = cga2d.sandwich_product_sparse(ev, point)
 
@@ -316,11 +316,11 @@ class TestSandwichProduct:
 
         # Create a point using our implementation
         x = torch.tensor([1.0, 0.0], dtype=torch.float32)
-        point = cga2d.upgc_encode(x)
+        point = cga2d.cga_encode(x)
 
         # Transform
         result = cga2d.sandwich_product_sparse(ev, point)
-        decoded = cga2d.upgc_decode(result)
+        decoded = cga2d.cga_decode(result)
 
         assert torch.allclose(decoded, expected, atol=1e-5)
 
@@ -334,7 +334,7 @@ class TestSandwichProduct:
         points = torch.randn(batch_size, 4)
         # Normalize to valid UPGC points
         x_batch = torch.randn(batch_size, 2)
-        points = cga2d.upgc_encode(x_batch)
+        points = cga2d.cga_encode(x_batch)
 
         result = cga2d.sandwich_product_sparse(ev, points)
 

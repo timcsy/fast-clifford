@@ -2,7 +2,7 @@
 Sparsity analysis for CGA operations.
 
 Defines sparsity patterns for common multivector types:
-- UPGC Point (Grade 1 only)
+- CGA Point (Grade 1 only)
 - EvenVersor (Grade 0, 2, 4)
 
 Supports multiple CGA dimensions:
@@ -18,7 +18,7 @@ from .base import SparsityPattern
 from .cga_factory import (
     compute_blade_count,
     compute_grade_indices,
-    get_upgc_point_indices,
+    get_point_indices,
     get_even_versor_indices,
     get_product_table,
     compute_reverse_signs,
@@ -28,16 +28,16 @@ from .cga_factory import (
 
 
 # =============================================================================
-# T022: UPGC Point Sparsity Pattern
+# T022: CGA Point Sparsity Pattern
 # =============================================================================
 
-# UPGC Point: X = n_o + x + 0.5|x|^2 * n_inf
+# CGA Point: X = n_o + x + 0.5|x|^2 * n_inf
 # Only Grade 1 components are non-zero
-UPGC_POINT_FULL_INDICES = (1, 2, 3, 4, 5)  # e1, e2, e3, e+, e-
+POINT_FULL_INDICES = (1, 2, 3, 4, 5)  # e1, e2, e3, e+, e-
 
-UPGC_POINT_PATTERN = SparsityPattern(
-    name="upgc_point",
-    nonzero_indices=UPGC_POINT_FULL_INDICES,
+POINT_PATTERN = SparsityPattern(
+    name="point",
+    nonzero_indices=POINT_FULL_INDICES,
     blade_count=32
 )
 
@@ -122,7 +122,7 @@ def verify_grade1_output(output_indices: Set[int]) -> bool:
     Returns:
         True if all indices are Grade 1
     """
-    grade_1_set = set(UPGC_POINT_FULL_INDICES)
+    grade_1_set = set(POINT_FULL_INDICES)
     return output_indices.issubset(grade_1_set)
 
 
@@ -150,7 +150,7 @@ def get_sandwich_product_terms(
     Args:
         product_table: Geometric product lookup table
         even_versor_indices: Non-zero even_versor blade indices (16 for even_versor)
-        point_indices: Non-zero point blade indices (5 for UPGC)
+        point_indices: Non-zero point blade indices (5 for CGA Point)
         reverse_signs: Reverse signs for all 32 blades (used for reference only)
 
     Returns:
@@ -186,7 +186,7 @@ def get_sandwich_product_terms(
                 # Store term: (even_versor_sparse_i, point_sparse_j, even_versor_sparse_l, total_sign)
                 # Convert to sparse indices
                 m_sparse_i = EVEN_VERSOR_PATTERN.full_to_sparse(m_i)
-                p_sparse_j = UPGC_POINT_PATTERN.full_to_sparse(p_j)
+                p_sparse_j = POINT_PATTERN.full_to_sparse(p_j)
                 m_sparse_l = EVEN_VERSOR_PATTERN.full_to_sparse(m_l)
 
                 result_terms[output_idx].append((
@@ -247,7 +247,7 @@ EVEN_VERSOR_SPARSE_ORDER = """
 15: e23+- (index 30)
 """
 
-# Point sparse index order (matches UPGC_POINT_FULL_INDICES)
+# Point sparse index order (matches POINT_FULL_INDICES)
 POINT_SPARSE_ORDER = """
 0: e1 (index 1)
 1: e2 (index 2)
@@ -261,9 +261,9 @@ POINT_SPARSE_ORDER = """
 # 通用化稀疏分析工廠函數
 # =============================================================================
 
-def get_upgc_point_pattern(euclidean_dim: int) -> SparsityPattern:
+def get_point_pattern(euclidean_dim: int) -> SparsityPattern:
     """
-    取得指定維度 CGA 的 UPGC Point 稀疏性模式。
+    取得指定維度 CGA 的 CGA Point 稀疏性模式。
 
     Args:
         euclidean_dim: 歐幾里得空間維度 (1, 2, 或 3)
@@ -272,10 +272,10 @@ def get_upgc_point_pattern(euclidean_dim: int) -> SparsityPattern:
         SparsityPattern 物件
     """
     blade_count = compute_blade_count(euclidean_dim)
-    point_indices = get_upgc_point_indices(euclidean_dim)
+    point_indices = get_point_indices(euclidean_dim)
 
     return SparsityPattern(
-        name=f"upgc_point_{euclidean_dim}d",
+        name=f"point_{euclidean_dim}d",
         nonzero_indices=point_indices,
         blade_count=blade_count
     )
@@ -315,7 +315,7 @@ def analyze_sandwich_output_sparsity_generic(
     """
     product_table = get_product_table(euclidean_dim)
     even_versor_indices = get_even_versor_indices(euclidean_dim)
-    point_indices = get_upgc_point_indices(euclidean_dim)
+    point_indices = get_point_indices(euclidean_dim)
 
     return analyze_sandwich_output_sparsity(
         product_table, even_versor_indices, point_indices
@@ -336,11 +336,11 @@ def get_sandwich_product_terms_generic(
     """
     product_table = get_product_table(euclidean_dim)
     even_versor_indices = get_even_versor_indices(euclidean_dim)
-    point_indices = get_upgc_point_indices(euclidean_dim)
+    point_indices = get_point_indices(euclidean_dim)
     reverse_signs = compute_reverse_signs(euclidean_dim)
 
     even_versor_pattern = get_even_versor_pattern(euclidean_dim)
-    point_pattern = get_upgc_point_pattern(euclidean_dim)
+    point_pattern = get_point_pattern(euclidean_dim)
 
     # 建立結果字典
     result_terms = {k: [] for k in point_indices}
@@ -398,12 +398,12 @@ def count_sandwich_product_ops(euclidean_dim: int) -> int:
 
 # CGA1D Cl(2,1): 8 blades
 # Grade 分佈: 1, 3, 3, 1
-CGA1D_UPGC_POINT_FULL_INDICES = (1, 2, 3)  # e1, e+, e-
+CGA1D_POINT_FULL_INDICES = (1, 2, 3)  # e1, e+, e-
 CGA1D_EVEN_VERSOR_FULL_INDICES = (0, 4, 5, 6)  # scalar, e1+, e1-, e+-
 
-CGA1D_UPGC_POINT_PATTERN = SparsityPattern(
-    name="upgc_point_1d",
-    nonzero_indices=CGA1D_UPGC_POINT_FULL_INDICES,
+CGA1D_POINT_PATTERN = SparsityPattern(
+    name="point_1d",
+    nonzero_indices=CGA1D_POINT_FULL_INDICES,
     blade_count=8
 )
 
@@ -420,12 +420,12 @@ CGA1D_EVEN_VERSOR_PATTERN = SparsityPattern(
 
 # CGA2D Cl(3,1): 16 blades
 # Grade 分佈: 1, 4, 6, 4, 1
-CGA2D_UPGC_POINT_FULL_INDICES = (1, 2, 3, 4)  # e1, e2, e+, e-
+CGA2D_POINT_FULL_INDICES = (1, 2, 3, 4)  # e1, e2, e+, e-
 CGA2D_EVEN_VERSOR_FULL_INDICES = (0, 5, 6, 7, 8, 9, 10, 15)  # Grade 0, 2, 4
 
-CGA2D_UPGC_POINT_PATTERN = SparsityPattern(
-    name="upgc_point_2d",
-    nonzero_indices=CGA2D_UPGC_POINT_FULL_INDICES,
+CGA2D_POINT_PATTERN = SparsityPattern(
+    name="point_2d",
+    nonzero_indices=CGA2D_POINT_FULL_INDICES,
     blade_count=16
 )
 
@@ -1079,10 +1079,10 @@ if __name__ == "__main__":
     for dim in [1, 2, 3]:
         print(f"\n--- CGA{dim}D ---")
 
-        point_pattern = get_upgc_point_pattern(dim)
+        point_pattern = get_point_pattern(dim)
         even_versor_pattern = get_even_versor_pattern(dim)
 
-        print(f"UPGC Point: {point_pattern.sparse_count} components")
+        print(f"CGA Point: {point_pattern.sparse_count} components")
         print(f"  Indices: {point_pattern.nonzero_indices}")
 
         print(f"EvenVersor: {even_versor_pattern.sparse_count} components")

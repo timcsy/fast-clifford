@@ -207,7 +207,7 @@ class TestUPGCEncoding:
     def test_encode_origin(self):
         """Encoding origin gives n_o."""
         x = torch.zeros(1)
-        point = cga1d.upgc_encode(x)
+        point = cga1d.cga_encode(x)
 
         # n_o = 0.5*(e- - e+) -> e+ = -0.5, e- = 0.5
         assert point[0].item() == pytest.approx(0.0)   # e1
@@ -217,7 +217,7 @@ class TestUPGCEncoding:
     def test_encode_unit_x(self):
         """Encoding x=1 gives correct point."""
         x = torch.tensor([1.0])
-        point = cga1d.upgc_encode(x)
+        point = cga1d.cga_encode(x)
 
         # X = n_o + x + 0.5|x|² n_inf
         # |x|² = 1, so:
@@ -231,7 +231,7 @@ class TestUPGCEncoding:
     def test_encode_x_equals_2(self):
         """Encoding x=2 gives correct point."""
         x = torch.tensor([2.0])
-        point = cga1d.upgc_encode(x)
+        point = cga1d.cga_encode(x)
 
         # |x|² = 4, so:
         # e1 = 2
@@ -245,8 +245,8 @@ class TestUPGCEncoding:
         """Decode inverts encode for various points."""
         for _ in range(10):
             x = torch.randn(1)
-            point = cga1d.upgc_encode(x)
-            decoded = cga1d.upgc_decode(point)
+            point = cga1d.cga_encode(x)
+            decoded = cga1d.cga_decode(point)
             assert torch.allclose(x, decoded)
 
     def test_batch_encode_decode(self):
@@ -254,8 +254,8 @@ class TestUPGCEncoding:
         batch_size = 8
         x = torch.randn(batch_size, 1)
 
-        points = cga1d.upgc_encode(x)
-        decoded = cga1d.upgc_decode(points)
+        points = cga1d.cga_encode(x)
+        decoded = cga1d.cga_decode(points)
 
         assert points.shape == (batch_size, 3)
         assert decoded.shape == (batch_size, 1)
@@ -275,7 +275,7 @@ class TestSandwichProduct:
         ev[0] = 1.0  # scalar = 1
 
         x = torch.randn(1)
-        point = cga1d.upgc_encode(x)
+        point = cga1d.cga_encode(x)
 
         result = cga1d.sandwich_product_sparse(ev, point)
 
@@ -313,11 +313,11 @@ class TestSandwichProduct:
 
         # Create a point at x=2
         x = torch.tensor([2.0], dtype=torch.float32)
-        point = cga1d.upgc_encode(x)
+        point = cga1d.cga_encode(x)
 
         # Transform
         result = cga1d.sandwich_product_sparse(ev, point)
-        decoded = cga1d.upgc_decode(result)
+        decoded = cga1d.cga_decode(result)
 
         assert torch.allclose(decoded, expected, atol=1e-5)
 
@@ -329,7 +329,7 @@ class TestSandwichProduct:
         ev[:, 0] = 1.0  # Identity EvenVersors
 
         x_batch = torch.randn(batch_size, 1)
-        points = cga1d.upgc_encode(x_batch)
+        points = cga1d.cga_encode(x_batch)
 
         result = cga1d.sandwich_product_sparse(ev, points)
 

@@ -33,7 +33,7 @@ class TestONNXExport:
         """Get CGA0D algebra instance."""
         return CGA(0)
 
-    def test_care_layer_onnx_export(self, onnx_available, algebra):
+    def test_transform_layer_onnx_export(self, onnx_available, algebra):
         """Test that CliffordTransformLayer can be exported to ONNX without Loop nodes."""
         import onnx
 
@@ -67,7 +67,7 @@ class TestONNXExport:
 
             assert "Loop" not in op_types, f"Found Loop node in ONNX graph: {op_types}"
 
-    def test_care_layer_onnx_numerical_consistency(self, onnx_available, algebra):
+    def test_transform_layer_onnx_numerical_consistency(self, onnx_available, algebra):
         """Test that ONNX export produces numerically consistent results."""
         import onnx
         import onnxruntime as ort

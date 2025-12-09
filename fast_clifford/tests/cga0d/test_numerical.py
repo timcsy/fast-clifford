@@ -121,18 +121,18 @@ class TestReverse:
 class TestUPGC:
     """Test UPGC encoding and decoding."""
 
-    def test_upgc_encode_shape(self):
+    def test_cga_encode_shape(self):
         """Test that encoding produces correct shape."""
         batch_size = 8
         x = torch.randn(batch_size, 0)  # 0D input
-        point = cga0d.upgc_encode(x)
+        point = cga0d.cga_encode(x)
         assert point.shape == (batch_size, 2)
 
-    def test_upgc_encode_is_origin(self):
+    def test_cga_encode_is_origin(self):
         """Test that encoded point is always the origin n_o."""
         batch_size = 8
         x = torch.randn(batch_size, 0)
-        point = cga0d.upgc_encode(x)
+        point = cga0d.cga_encode(x)
 
         # Origin n_o = 0.5 * (e- - e+) = -0.5*e+ + 0.5*e-
         expected_e_plus = torch.full((batch_size,), -0.5)
@@ -141,46 +141,46 @@ class TestUPGC:
         assert torch.allclose(point[..., 0], expected_e_plus, atol=1e-6)
         assert torch.allclose(point[..., 1], expected_e_minus, atol=1e-6)
 
-    def test_upgc_decode_shape(self):
+    def test_cga_decode_shape(self):
         """Test that decoding produces correct shape."""
         batch_size = 8
         point = torch.randn(batch_size, 2)
-        x = cga0d.upgc_decode(point)
+        x = cga0d.cga_decode(point)
         assert x.shape == (batch_size, 0)
 
 
 class TestSandwichProduct:
     """Test sandwich product operations."""
 
-    def test_sandwich_identity_motor(self):
-        """Test that identity motor (1, 0) preserves point."""
+    def test_sandwich_identity_ev(self):
+        """Test that identity EvenVersor (1, 0) preserves point."""
         batch_size = 8
-        motor = torch.zeros(batch_size, 2)
-        motor[..., 0] = 1.0  # scalar = 1, e+- = 0
+        ev = torch.zeros(batch_size, 2)
+        ev[..., 0] = 1.0  # scalar = 1, e+- = 0
 
         point = torch.randn(batch_size, 2)
-        result = cga0d.sandwich_product_sparse(motor, point)
+        result = cga0d.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(result, point, atol=1e-6)
 
     def test_sandwich_product_shape(self):
         """Test that sandwich product produces correct shape."""
         batch_size = 8
-        motor = torch.randn(batch_size, 2)
+        ev = torch.randn(batch_size, 2)
         point = torch.randn(batch_size, 2)
 
-        result = cga0d.sandwich_product_sparse(motor, point)
+        result = cga0d.sandwich_product_sparse(ev, point)
         assert result.shape == (batch_size, 2)
 
-    def test_sandwich_product_normalized_motor(self):
-        """Test sandwich product with normalized motor."""
+    def test_sandwich_product_normalized_ev(self):
+        """Test sandwich product with normalized ev."""
         batch_size = 8
-        # Create a normalized motor
+        # Create a normalized EvenVersor
         angle = torch.rand(batch_size) * 2 * np.pi
-        motor = torch.stack([torch.cos(angle / 2), torch.sin(angle / 2)], dim=-1)
+        ev = torch.stack([torch.cos(angle / 2), torch.sin(angle / 2)], dim=-1)
 
-        point = cga0d.upgc_encode(torch.randn(batch_size, 0))
-        result = cga0d.sandwich_product_sparse(motor, point)
+        point = cga0d.cga_encode(torch.randn(batch_size, 0))
+        result = cga0d.sandwich_product_sparse(ev, point)
 
         assert result.shape == (batch_size, 2)
         # The result should still be finite
@@ -261,12 +261,12 @@ class TestGradient:
 
     def test_sandwich_product_gradient(self):
         """Test that sandwich product supports gradient computation."""
-        motor = torch.randn(4, 2, requires_grad=True)
+        ev = torch.randn(4, 2, requires_grad=True)
         point = torch.randn(4, 2, requires_grad=True)
 
-        result = cga0d.sandwich_product_sparse(motor, point)
+        result = cga0d.sandwich_product_sparse(ev, point)
         loss = result.sum()
         loss.backward()
 
-        assert motor.grad is not None
+        assert ev.grad is not None
         assert point.grad is not None

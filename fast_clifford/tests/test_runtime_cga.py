@@ -57,26 +57,26 @@ class TestRuntimeCGAOperations:
         """Create CGA(6) algebra."""
         return CGA(6)
 
-    def test_upgc_encode_shape(self, cga6):
-        """Test that upgc_encode produces correct shape."""
+    def test_cga_encode_shape(self, cga6):
+        """Test that cga_encode produces correct shape."""
         batch_size = 4
         x = torch.randn(batch_size, 6)
-        point = cga6.upgc_encode(x)
+        point = cga6.cga_encode(x)
         assert point.shape == (batch_size, 8)
 
-    def test_upgc_decode_shape(self, cga6):
-        """Test that upgc_decode produces correct shape."""
+    def test_cga_decode_shape(self, cga6):
+        """Test that cga_decode produces correct shape."""
         batch_size = 4
         point = torch.randn(batch_size, 8)
-        x = cga6.upgc_decode(point)
+        x = cga6.cga_decode(point)
         assert x.shape == (batch_size, 6)
 
     def test_upgc_roundtrip(self, cga6):
         """Test encode/decode roundtrip preserves Euclidean coordinates."""
         batch_size = 4
         x = torch.randn(batch_size, 6)
-        point = cga6.upgc_encode(x)
-        x_decoded = cga6.upgc_decode(point)
+        point = cga6.cga_encode(x)
+        x_decoded = cga6.cga_decode(point)
         assert torch.allclose(x, x_decoded, atol=1e-5)
 
     def test_geometric_product_shape(self, cga6):
@@ -100,21 +100,21 @@ class TestRuntimeCGAOperations:
     def test_sandwich_product_shape(self, cga6):
         """Test that sandwich_product_sparse produces correct shape."""
         batch_size = 4
-        motor = torch.randn(batch_size, cga6.motor_count)
+        ev = torch.randn(batch_size, cga6.even_versor_count)
         point = torch.randn(batch_size, cga6.point_count)
-        result = cga6.sandwich_product_sparse(motor, point)
+        result = cga6.sandwich_product_sparse(ev, point)
         assert result.shape == (batch_size, 8)
 
-    def test_sandwich_product_identity_motor(self, cga6):
-        """Test that identity motor preserves point."""
+    def test_sandwich_product_identity_ev(self, cga6):
+        """Test that identity EvenVersor preserves point."""
         batch_size = 4
 
-        # Create identity motor (scalar = 1, rest = 0)
-        motor = torch.zeros(batch_size, cga6.motor_count)
-        motor[..., 0] = 1.0
+        # Create identity EvenVersor (scalar = 1, rest = 0)
+        ev = torch.zeros(batch_size, cga6.even_versor_count)
+        ev[..., 0] = 1.0
 
         point = torch.randn(batch_size, cga6.point_count)
-        result = cga6.sandwich_product_sparse(motor, point)
+        result = cga6.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(result, point, atol=1e-5)
 
@@ -125,12 +125,12 @@ class TestRuntimeCGAOperations:
         result = cga6.reverse_full(mv)
         assert result.shape == (batch_size, 256)
 
-    def test_reverse_motor_shape(self, cga6):
-        """Test that reverse_motor produces correct shape."""
+    def test_reverse_even_versor_shape(self, cga6):
+        """Test that reverse_even_versor produces correct shape."""
         batch_size = 4
-        motor = torch.randn(batch_size, cga6.motor_count)
-        result = cga6.reverse_motor(motor)
-        assert result.shape == motor.shape
+        ev = torch.randn(batch_size, cga6.even_versor_count)
+        result = cga6.reverse_even_versor(ev)
+        assert result.shape == ev.shape
 
 
 class TestRuntimeCGALayers:
@@ -140,14 +140,14 @@ class TestRuntimeCGALayers:
     def cga6(self):
         return CGA(6)
 
-    def test_get_care_layer(self, cga6):
-        """Test get_care_layer returns working module."""
-        layer = cga6.get_care_layer()
+    def test_get_transform_layer(self, cga6):
+        """Test get_transform_layer returns working module."""
+        layer = cga6.get_transform_layer()
         assert isinstance(layer, torch.nn.Module)
 
-        motor = torch.randn(4, cga6.motor_count)
+        ev = torch.randn(4, cga6.even_versor_count)
         point = torch.randn(4, cga6.point_count)
-        result = layer(motor, point)
+        result = layer(ev, point)
         assert result.shape == (4, cga6.point_count)
 
     def test_get_encoder(self, cga6):
@@ -173,9 +173,9 @@ class TestRuntimeCGALayers:
         pipeline = cga6.get_transform_pipeline()
         assert isinstance(pipeline, torch.nn.Module)
 
-        motor = torch.randn(4, cga6.motor_count)
+        ev = torch.randn(4, cga6.even_versor_count)
         x = torch.randn(4, 6)
-        y = pipeline(motor, x)
+        y = pipeline(ev, x)
         assert y.shape == (4, 6)
 
 
@@ -200,28 +200,28 @@ class TestRuntimeCGAGradients:
 
     def test_sandwich_product_gradient(self, cga6):
         """Test that sandwich product supports gradients."""
-        motor = torch.randn(4, cga6.motor_count, requires_grad=True)
+        ev = torch.randn(4, cga6.even_versor_count, requires_grad=True)
         point = torch.randn(4, cga6.point_count, requires_grad=True)
 
-        result = cga6.sandwich_product_sparse(motor, point)
+        result = cga6.sandwich_product_sparse(ev, point)
         loss = result.sum()
         loss.backward()
 
-        assert motor.grad is not None
+        assert ev.grad is not None
         assert point.grad is not None
 
     def test_transform_pipeline_gradient(self, cga6):
         """Test that transform pipeline supports gradients."""
         pipeline = cga6.get_transform_pipeline()
 
-        motor = torch.randn(4, cga6.motor_count, requires_grad=True)
+        ev = torch.randn(4, cga6.even_versor_count, requires_grad=True)
         x = torch.randn(4, 6, requires_grad=True)
 
-        y = pipeline(motor, x)
+        y = pipeline(ev, x)
         loss = y.sum()
         loss.backward()
 
-        assert motor.grad is not None
+        assert ev.grad is not None
         assert x.grad is not None
 
 
@@ -241,13 +241,13 @@ class TestRuntimeCGAONNX:
     def cga6(self):
         return CGA(6)
 
-    def test_care_layer_onnx_no_loop(self, onnx_available, cga6):
+    def test_transform_layer_onnx_no_loop(self, onnx_available, cga6):
         """Test that CareLayer ONNX export has no Loop nodes."""
         import onnx
 
-        layer = cga6.get_care_layer()
+        layer = cga6.get_transform_layer()
 
-        motor = torch.randn(1, cga6.motor_count)
+        ev = torch.randn(1, cga6.even_versor_count)
         point = torch.randn(1, cga6.point_count)
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -255,12 +255,12 @@ class TestRuntimeCGAONNX:
 
             torch.onnx.export(
                 layer,
-                (motor, point),
+                (ev, point),
                 onnx_path,
-                input_names=["motor", "point"],
+                input_names=["ev", "point"],
                 output_names=["output"],
                 dynamic_axes={
-                    "motor": {0: "batch"},
+                    "ev": {0: "batch"},
                     "point": {0: "batch"},
                     "output": {0: "batch"},
                 },
@@ -272,30 +272,30 @@ class TestRuntimeCGAONNX:
 
             assert "Loop" not in op_types, f"Found Loop in ONNX: {op_types}"
 
-    def test_care_layer_onnx_numerical(self, onnx_available, cga6):
+    def test_transform_layer_onnx_numerical(self, onnx_available, cga6):
         """Test ONNX numerical consistency."""
         import onnx
         import onnxruntime as ort
 
-        layer = cga6.get_care_layer()
+        layer = cga6.get_transform_layer()
 
-        motor = torch.randn(4, cga6.motor_count)
+        ev = torch.randn(4, cga6.even_versor_count)
         point = torch.randn(4, cga6.point_count)
 
         with torch.no_grad():
-            pytorch_output = layer(motor, point)
+            pytorch_output = layer(ev, point)
 
         with tempfile.TemporaryDirectory() as tmpdir:
             onnx_path = os.path.join(tmpdir, "runtime_cga6_care.onnx")
 
             torch.onnx.export(
                 layer,
-                (motor, point),
+                (ev, point),
                 onnx_path,
-                input_names=["motor", "point"],
+                input_names=["ev", "point"],
                 output_names=["output"],
                 dynamic_axes={
-                    "motor": {0: "batch"},
+                    "ev": {0: "batch"},
                     "point": {0: "batch"},
                     "output": {0: "batch"},
                 },
@@ -306,7 +306,7 @@ class TestRuntimeCGAONNX:
             ort_output = session.run(
                 None,
                 {
-                    "motor": motor.numpy(),
+                    "ev": ev.numpy(),
                     "point": point.numpy(),
                 }
             )[0]
@@ -359,7 +359,7 @@ class TestRuntimeCGACliffordVerification:
             atol=1e-4
         )
 
-    def test_upgc_encode_vs_clifford(self, clifford_cga6, cga6):
+    def test_cga_encode_vs_clifford(self, clifford_cga6, cga6):
         """Compare UPGC encoding with clifford library."""
         layout, blades, stuff = clifford_cga6
         up_func = stuff['up']
@@ -377,7 +377,7 @@ class TestRuntimeCGACliffordVerification:
 
         # PyTorch computation
         x_torch = torch.tensor(x_values, dtype=torch.float32).unsqueeze(0)
-        point_torch = cga6.upgc_encode(x_torch)
+        point_torch = cga6.cga_encode(x_torch)
 
         assert torch.allclose(
             point_torch.squeeze(0),

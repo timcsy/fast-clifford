@@ -18,6 +18,18 @@ Supported CGA algebras:
 Unified interface:
 - CGA(n): Create CGA algebra by Euclidean dimension
 - Cl(p, q, r): Create Clifford algebra by signature
+
+Extended Operations (Feature 005):
+- compose(): EvenVersor or Similitude composition
+- sandwich_product(): Transform points/multivectors
+- inner_product(): Scalar product <a*b>_0
+- outer_product(): Wedge product a ^ b
+- left_contraction(): a left-contract b
+- right_contraction(): a right-contract b
+- grade_select(): Extract grade-k component
+- dual(): Poincare duality
+- normalize(): Unit normalization
+- exp_bivector(): Bivector exponential map
 """
 
 __version__ = "0.1.0"
@@ -26,7 +38,7 @@ __version__ = "0.1.0"
 from .algebras import cga0d, cga1d, cga2d, cga3d, cga4d, cga5d
 
 # Expose unified interface
-from .cga import CGA, Cl
+from .cga import CGA, Cl, CGAAlgebraBase, Multivector, EvenVersor, Similitude
 
 __all__ = [
     # Version
@@ -34,6 +46,11 @@ __all__ = [
     # Unified interface
     "CGA",
     "Cl",
+    "CGAAlgebraBase",
+    # Multivector classes
+    "Multivector",
+    "EvenVersor",
+    "Similitude",
     # Direct module access
     "cga0d",
     "cga1d",

@@ -15,34 +15,34 @@ import tempfile
 import os
 
 from fast_clifford.algebras.cga5d.layers import (
-    CGA5DCareLayer,
-    UPGC5DEncoder,
-    UPGC5DDecoder,
-    CGA5DTransformPipeline
+    CliffordTransformLayer,
+    CGAEncoder,
+    CGADecoder,
+    CGAPipeline
 )
 
 
 class TestONNXExport:
     """ONNX export tests with opset 17."""
 
-    def test_cga5d_care_layer_export(self):
-        """Test CGA5DCareLayer exports to ONNX."""
-        layer = CGA5DCareLayer()
+    def test_cga5d_transform_layer_export(self):
+        """Test CliffordTransformLayer exports to ONNX."""
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(1, 64)
+        ev = torch.randn(1, 64)
         point = torch.randn(1, 7)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "point"],
+                    input_names=["ev", "point"],
                     output_names=["output"],
                     dynamic_axes={
-                        "motor": {0: "batch_size"},
+                        "ev": {0: "batch_size"},
                         "point": {0: "batch_size"},
                         "output": {0: "batch_size"}
                     }
@@ -59,8 +59,8 @@ class TestONNXExport:
                 os.unlink(f.name)
 
     def test_upgc5d_encoder_export(self):
-        """Test UPGC5DEncoder exports to ONNX."""
-        encoder = UPGC5DEncoder()
+        """Test CGAEncoder exports to ONNX."""
+        encoder = CGAEncoder()
 
         x = torch.randn(1, 5)
 
@@ -87,8 +87,8 @@ class TestONNXExport:
                 os.unlink(f.name)
 
     def test_upgc5d_decoder_export(self):
-        """Test UPGC5DDecoder exports to ONNX."""
-        decoder = UPGC5DDecoder()
+        """Test CGADecoder exports to ONNX."""
+        decoder = CGADecoder()
 
         point = torch.randn(1, 7)
 
@@ -115,23 +115,23 @@ class TestONNXExport:
                 os.unlink(f.name)
 
     def test_full_pipeline_export(self):
-        """Test CGA5DTransformPipeline exports to ONNX."""
-        pipeline = CGA5DTransformPipeline()
+        """Test CGAPipeline exports to ONNX."""
+        pipeline = CGAPipeline()
 
-        motor = torch.randn(1, 64)
+        ev = torch.randn(1, 64)
         x = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "x"],
+                    input_names=["ev", "x"],
                     output_names=["y"],
                     dynamic_axes={
-                        "motor": {0: "batch_size"},
+                        "ev": {0: "batch_size"},
                         "x": {0: "batch_size"},
                         "y": {0: "batch_size"}
                     }
@@ -155,17 +155,17 @@ class TestONNXNoLoops:
             op_types.add(node.op_type)
         return op_types
 
-    def test_cga5d_care_layer_no_loops(self):
-        """Verify CGA5DCareLayer has no Loop nodes."""
-        layer = CGA5DCareLayer()
-        motor = torch.randn(1, 64)
+    def test_cga5d_transform_layer_no_loops(self):
+        """Verify CliffordTransformLayer has no Loop nodes."""
+        layer = CliffordTransformLayer()
+        ev = torch.randn(1, 64)
         point = torch.randn(1, 7)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17
                 )
@@ -184,16 +184,16 @@ class TestONNXNoLoops:
                 os.unlink(f.name)
 
     def test_full_pipeline_no_loops(self):
-        """Verify CGA5DTransformPipeline has no Loop nodes."""
-        pipeline = CGA5DTransformPipeline()
-        motor = torch.randn(1, 64)
+        """Verify CGAPipeline has no Loop nodes."""
+        pipeline = CGAPipeline()
+        ev = torch.randn(1, 64)
         x = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17
                 )
@@ -240,17 +240,17 @@ class TestONNXBasicOperators:
             op_types.add(node.op_type)
         return op_types
 
-    def test_cga5d_care_layer_basic_ops(self):
-        """Verify CGA5DCareLayer uses only basic operators."""
-        layer = CGA5DCareLayer()
-        motor = torch.randn(1, 64)
+    def test_cga5d_transform_layer_basic_ops(self):
+        """Verify CliffordTransformLayer uses only basic operators."""
+        layer = CliffordTransformLayer()
+        ev = torch.randn(1, 64)
         point = torch.randn(1, 7)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17
                 )
@@ -269,15 +269,15 @@ class TestONNXBasicOperators:
 
     def test_report_ops_used(self):
         """Report all ops used by the full pipeline."""
-        pipeline = CGA5DTransformPipeline()
-        motor = torch.randn(1, 64)
+        pipeline = CGAPipeline()
+        ev = torch.randn(1, 64)
         x = torch.randn(1, 5)
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17
                 )
@@ -286,7 +286,7 @@ class TestONNXBasicOperators:
                 model = onnx.load(f.name)
                 op_types = self._get_all_op_types(model)
 
-                print(f"\nOps used by CGA5DTransformPipeline: {sorted(op_types)}")
+                print(f"\nOps used by CGAPipeline: {sorted(op_types)}")
 
                 op_counts = {}
                 for node in model.graph.node:
@@ -307,20 +307,20 @@ class TestONNXNumericalEquivalence:
         """Compare ONNX inference to PyTorch inference."""
         import numpy as np
 
-        layer = CGA5DCareLayer()
-        motor = torch.randn(1, 64)
+        layer = CliffordTransformLayer()
+        ev = torch.randn(1, 64)
         point = torch.randn(1, 7)
 
-        pytorch_result = layer(motor, point).detach().numpy()
+        pytorch_result = layer(ev, point).detach().numpy()
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     layer,
-                    (motor, point),
+                    (ev, point),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "point"],
+                    input_names=["ev", "point"],
                     output_names=["output"]
                 )
 
@@ -330,7 +330,7 @@ class TestONNXNumericalEquivalence:
                 onnx_result = session.run(
                     None,
                     {
-                        "motor": motor.numpy(),
+                        "ev": ev.numpy(),
                         "point": point.numpy()
                     }
                 )[0]
@@ -347,20 +347,20 @@ class TestONNXNumericalEquivalence:
         """Compare full pipeline ONNX to PyTorch."""
         import numpy as np
 
-        pipeline = CGA5DTransformPipeline()
-        motor = torch.randn(1, 64)
+        pipeline = CGAPipeline()
+        ev = torch.randn(1, 64)
         x = torch.randn(1, 5)
 
-        pytorch_result = pipeline(motor, x).detach().numpy()
+        pytorch_result = pipeline(ev, x).detach().numpy()
 
         with tempfile.NamedTemporaryFile(suffix=".onnx", delete=False) as f:
             try:
                 torch.onnx.export(
                     pipeline,
-                    (motor, x),
+                    (ev, x),
                     f.name,
                     opset_version=17,
-                    input_names=["motor", "x"],
+                    input_names=["ev", "x"],
                     output_names=["y"]
                 )
 
@@ -370,7 +370,7 @@ class TestONNXNumericalEquivalence:
                 onnx_result = session.run(
                     None,
                     {
-                        "motor": motor.numpy(),
+                        "ev": ev.numpy(),
                         "x": x.numpy()
                     }
                 )[0]

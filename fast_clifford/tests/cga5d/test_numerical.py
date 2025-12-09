@@ -19,10 +19,10 @@ from fast_clifford.algebras.cga5d import (
     EUCLIDEAN_DIM,
     BLADE_COUNT,
     GRADE_INDICES,
-    UPGC_POINT_MASK,
-    MOTOR_SPARSE_INDICES,
+    POINT_MASK,
+    EVEN_VERSOR_SPARSE_INDICES,
     REVERSE_SIGNS,
-    MOTOR_REVERSE_SIGNS,
+    EVEN_VERSOR_REVERSE_SIGNS,
     get_layout,
     get_blades,
     get_null_basis,
@@ -33,10 +33,10 @@ from fast_clifford.algebras.cga5d import (
 )
 from fast_clifford.algebras.cga5d import functional as F
 from fast_clifford.algebras.cga5d.layers import (
-    CGA5DCareLayer,
-    UPGC5DEncoder,
-    UPGC5DDecoder,
-    CGA5DTransformPipeline,
+    CliffordTransformLayer,
+    CGAEncoder,
+    CGADecoder,
+    CGAPipeline,
 )
 
 
@@ -60,12 +60,12 @@ class TestAlgebraConstants:
 
     def test_upgc_point_size(self):
         """UPGC point has 7 components."""
-        assert len(UPGC_POINT_MASK) == 7
+        assert len(POINT_MASK) == 7
 
-    def test_motor_size(self):
-        """Motor has 64 components (G0 + G2 + G4 + G6)."""
+    def test_even_versor_size(self):
+        """EvenVersor has 64 components (G0 + G2 + G4 + G6)."""
         # G0: 1, G2: 21, G4: 35, G6: 7 = 64
-        assert len(MOTOR_SPARSE_INDICES) == 64
+        assert len(EVEN_VERSOR_SPARSE_INDICES) == 64
 
 
 class TestNullBasisProperties:
@@ -158,12 +158,12 @@ class TestAssociativity:
 
         assert np.allclose(left.value, right.value, rtol=1e-10)
 
-    def test_motor_associativity(self):
-        """Motor products are associative."""
+    def test_even_versor_associativity(self):
+        """EvenVersor products are associative."""
         layout = get_layout()
 
         np.random.seed(43)
-        # Create random even-grade multivectors (motors)
+        # Create random even-grade multivectors (EvenVersors)
         m1 = layout.randomMV()
         m2 = layout.randomMV()
         m3 = layout.randomMV()
@@ -195,30 +195,30 @@ class TestReverseOperation:
                 assert REVERSE_SIGNS[idx] == expected_signs[grade], \
                     f"Blade {idx} (grade {grade}) should have sign {expected_signs[grade]}"
 
-    def test_motor_reverse_signs_count(self):
-        """Motor has 64 reverse signs."""
-        assert len(MOTOR_REVERSE_SIGNS) == 64
+    def test_even_versor_reverse_signs_count(self):
+        """EvenVersor has 64 reverse signs."""
+        assert len(EVEN_VERSOR_REVERSE_SIGNS) == 64
 
-    def test_motor_reverse_functional(self):
-        """functional.reverse_motor matches clifford."""
+    def test_even_versor_reverse_functional(self):
+        """functional.reverse_even_versor matches clifford."""
         layout = get_layout()
 
         np.random.seed(44)
-        motor_full = layout.randomMV()
+        ev_full = layout.randomMV()
 
-        # Extract motor components (G0 + G2 + G4 + G6)
-        motor_sparse = np.array([motor_full.value[idx] for idx in MOTOR_SPARSE_INDICES])
-        motor_tensor = torch.tensor(motor_sparse, dtype=torch.float32).unsqueeze(0)
+        # Extract EvenVersor components (G0 + G2 + G4 + G6)
+        ev_sparse = np.array([ev_full.value[idx] for idx in EVEN_VERSOR_SPARSE_INDICES])
+        ev_tensor = torch.tensor(ev_sparse, dtype=torch.float32).unsqueeze(0)
 
         # Compute reverse with our function
-        reversed_tensor = F.reverse_motor(motor_tensor)
+        reversed_tensor = F.reverse_even_versor(ev_tensor)
         reversed_np = reversed_tensor.squeeze(0).numpy()
 
         # Compute reverse with clifford
-        motor_reversed = ~motor_full
+        ev_reversed = ~ev_full
 
         # Compare sparse components
-        expected = np.array([motor_reversed.value[idx] for idx in MOTOR_SPARSE_INDICES])
+        expected = np.array([ev_reversed.value[idx] for idx in EVEN_VERSOR_SPARSE_INDICES])
 
         assert np.allclose(reversed_np, expected, rtol=1e-5)
 
@@ -228,22 +228,22 @@ class TestSparseSandwichProduct:
 
     def test_sandwich_product_shape(self):
         """Sandwich product preserves point shape."""
-        motor = torch.randn(2, 64)
+        ev = torch.randn(2, 64)
         point = torch.randn(2, 7)
 
-        result = F.sandwich_product_sparse(motor, point)
+        result = F.sandwich_product_sparse(ev, point)
 
         assert result.shape == (2, 7)
 
-    def test_sandwich_with_identity_motor(self):
-        """Identity motor (scalar=1) preserves point."""
-        # Identity motor: scalar = 1, all others = 0
-        motor = torch.zeros(1, 64)
-        motor[0, 0] = 1.0  # Scalar component
+    def test_sandwich_with_identity_even_versor(self):
+        """Identity EvenVersor (scalar=1) preserves point."""
+        # Identity EvenVersor: scalar = 1, all others = 0
+        ev = torch.zeros(1, 64)
+        ev[0, 0] = 1.0  # Scalar component
 
         point = torch.randn(1, 7)
 
-        result = F.sandwich_product_sparse(motor, point)
+        result = F.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(result, point, rtol=1e-5, atol=1e-5)
 
@@ -263,17 +263,17 @@ class TestSparseSandwichProduct:
         e12 = e1 * e2
         rotor = np.cos(angle / 2) + np.sin(angle / 2) * e12
 
-        # Extract motor sparse representation
-        motor_sparse = np.array([rotor.value[idx] for idx in MOTOR_SPARSE_INDICES])
+        # Extract EvenVersor sparse representation
+        ev_sparse = np.array([rotor.value[idx] for idx in EVEN_VERSOR_SPARSE_INDICES])
 
         # Extract point sparse representation
         point_sparse = np.array([point_mv[idx] for idx in GRADE_INDICES[1]])
 
         # Compute with our sparse function
-        motor_tensor = torch.tensor(motor_sparse, dtype=torch.float32).unsqueeze(0)
+        ev_tensor = torch.tensor(ev_sparse, dtype=torch.float32).unsqueeze(0)
         point_tensor = torch.tensor(point_sparse, dtype=torch.float32).unsqueeze(0)
 
-        result_tensor = F.sandwich_product_sparse(motor_tensor, point_tensor)
+        result_tensor = F.sandwich_product_sparse(ev_tensor, point_tensor)
         result_np = result_tensor.squeeze(0).numpy()
 
         # Compute with clifford
@@ -292,21 +292,21 @@ class TestUPGCEncodeDecode:
     def test_encode_shape(self):
         """UPGC encode produces 7-component output."""
         x = torch.randn(2, 5)
-        point = F.upgc_encode(x)
+        point = F.cga_encode(x)
         assert point.shape == (2, 7)
 
     def test_decode_shape(self):
         """UPGC decode produces 5-component output."""
         point = torch.randn(2, 7)
-        x = F.upgc_decode(point)
+        x = F.cga_decode(point)
         assert x.shape == (2, 5)
 
     def test_encode_decode_roundtrip(self):
         """Encode then decode recovers original point."""
         x_original = torch.randn(10, 5)
 
-        point = F.upgc_encode(x_original)
-        x_recovered = F.upgc_decode(point)
+        point = F.cga_encode(x_original)
+        x_recovered = F.cga_decode(point)
 
         assert torch.allclose(x_original, x_recovered, rtol=1e-5, atol=1e-5)
 
@@ -320,75 +320,75 @@ class TestUPGCEncodeDecode:
 
         # Our encoding
         x_tensor = torch.tensor(x, dtype=torch.float32).unsqueeze(0)
-        point_tensor = F.upgc_encode(x_tensor)
+        point_tensor = F.cga_encode(x_tensor)
         result = point_tensor.squeeze(0).numpy()
 
         assert np.allclose(result, expected, rtol=1e-5, atol=1e-5)
 
 
-class TestCGA5DCareLayer:
-    """Test CGA5DCareLayer PyTorch module."""
+class TestCliffordTransformLayer:
+    """Test CliffordTransformLayer PyTorch module."""
 
     def test_layer_output_shape(self):
         """Layer produces correct output shape."""
-        layer = CGA5DCareLayer()
-        motor = torch.randn(4, 64)
+        layer = CliffordTransformLayer()
+        ev = torch.randn(4, 64)
         point = torch.randn(4, 7)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.shape == (4, 7)
 
-    def test_layer_identity_motor(self):
-        """Identity motor preserves point."""
-        layer = CGA5DCareLayer()
+    def test_layer_identity_even_versor(self):
+        """Identity EvenVersor preserves point."""
+        layer = CliffordTransformLayer()
 
-        motor = torch.zeros(2, 64)
-        motor[:, 0] = 1.0
+        ev = torch.zeros(2, 64)
+        ev[:, 0] = 1.0
 
         point = torch.randn(2, 7)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert torch.allclose(result, point, rtol=1e-5, atol=1e-5)
 
     def test_layer_batch_consistency(self):
         """Batched and single computation give same results."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(3, 64)
+        ev = torch.randn(3, 64)
         point = torch.randn(3, 7)
 
-        batched_result = layer(motor, point)
+        batched_result = layer(ev, point)
 
         for i in range(3):
-            single_result = layer(motor[i:i+1], point[i:i+1])
+            single_result = layer(ev[i:i+1], point[i:i+1])
             assert torch.allclose(batched_result[i], single_result.squeeze(0), rtol=1e-5)
 
 
-class TestCGA5DTransformPipeline:
+class TestCGAPipeline:
     """Test complete transformation pipeline."""
 
     def test_pipeline_output_shape(self):
         """Pipeline produces correct output shape."""
-        pipeline = CGA5DTransformPipeline()
-        motor = torch.randn(4, 64)
+        pipeline = CGAPipeline()
+        ev = torch.randn(4, 64)
         x = torch.randn(4, 5)
 
-        y = pipeline(motor, x)
+        y = pipeline(ev, x)
 
         assert y.shape == (4, 5)
 
-    def test_pipeline_identity_motor(self):
-        """Identity motor preserves 5D point."""
-        pipeline = CGA5DTransformPipeline()
+    def test_pipeline_identity_even_versor(self):
+        """Identity EvenVersor preserves 5D point."""
+        pipeline = CGAPipeline()
 
-        motor = torch.zeros(2, 64)
-        motor[:, 0] = 1.0
+        ev = torch.zeros(2, 64)
+        ev[:, 0] = 1.0
 
         x = torch.randn(2, 5)
 
-        y = pipeline(motor, x)
+        y = pipeline(ev, x)
 
         assert torch.allclose(x, y, rtol=1e-4, atol=1e-4)
 
@@ -398,33 +398,33 @@ class TestCrossPlatform:
 
     def test_cpu_execution(self):
         """Operations work on CPU."""
-        layer = CGA5DCareLayer()
-        motor = torch.randn(2, 64, device='cpu')
+        layer = CliffordTransformLayer()
+        ev = torch.randn(2, 64, device='cpu')
         point = torch.randn(2, 7, device='cpu')
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.device.type == 'cpu'
 
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
     def test_cuda_execution(self):
         """Operations work on CUDA."""
-        layer = CGA5DCareLayer().cuda()
-        motor = torch.randn(2, 64, device='cuda')
+        layer = CliffordTransformLayer().cuda()
+        ev = torch.randn(2, 64, device='cuda')
         point = torch.randn(2, 7, device='cuda')
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.device.type == 'cuda'
 
     @pytest.mark.skipif(not torch.backends.mps.is_available(), reason="MPS not available")
     def test_mps_execution(self):
         """Operations work on MPS (Apple Silicon)."""
-        layer = CGA5DCareLayer().to('mps')
-        motor = torch.randn(2, 64, device='mps')
+        layer = CliffordTransformLayer().to('mps')
+        ev = torch.randn(2, 64, device='mps')
         point = torch.randn(2, 7, device='mps')
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.device.type == 'mps'
 
@@ -434,11 +434,11 @@ class TestPrecision:
 
     def test_float32_precision(self):
         """Float32 operations are stable."""
-        layer = CGA5DCareLayer()
-        motor = torch.randn(10, 64, dtype=torch.float32)
+        layer = CliffordTransformLayer()
+        ev = torch.randn(10, 64, dtype=torch.float32)
         point = torch.randn(10, 7, dtype=torch.float32)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert not torch.isnan(result).any()
         assert not torch.isinf(result).any()
@@ -446,19 +446,19 @@ class TestPrecision:
 
     def test_float16_vs_float32_consistency(self):
         """Float16 and float32 give consistent results."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor_f32 = torch.randn(5, 64, dtype=torch.float32)
+        ev_f32 = torch.randn(5, 64, dtype=torch.float32)
         point_f32 = torch.randn(5, 7, dtype=torch.float32)
 
-        result_f32 = layer(motor_f32, point_f32)
+        result_f32 = layer(ev_f32, point_f32)
 
-        motor_f16 = motor_f32.to(torch.float16)
+        ev_f16 = ev_f32.to(torch.float16)
         point_f16 = point_f32.to(torch.float16)
 
-        result_f16 = layer(motor_f16, point_f16)
+        result_f16 = layer(ev_f16, point_f16)
 
-        # CGA5D has more terms (64 motor, 7 point), need relaxed tolerance
+        # CGA5D has more terms (64 EvenVersor, 7 point), need relaxed tolerance
         assert torch.allclose(
             result_f32, result_f16.to(torch.float32),
             rtol=1e-1, atol=2e-1
@@ -470,92 +470,92 @@ class TestGradients:
 
     def test_gradient_flow(self):
         """Gradients flow through sandwich product."""
-        motor = torch.randn(2, 64, requires_grad=True)
+        ev = torch.randn(2, 64, requires_grad=True)
         point = torch.randn(2, 7, requires_grad=True)
 
-        result = F.sandwich_product_sparse(motor, point)
+        result = F.sandwich_product_sparse(ev, point)
         loss = result.sum()
         loss.backward()
 
-        assert motor.grad is not None
+        assert ev.grad is not None
         assert point.grad is not None
-        assert not torch.isnan(motor.grad).any()
+        assert not torch.isnan(ev.grad).any()
         assert not torch.isnan(point.grad).any()
 
     def test_layer_gradient_flow(self):
-        """Gradients flow through CGA5DCareLayer."""
-        layer = CGA5DCareLayer()
+        """Gradients flow through CliffordTransformLayer."""
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(2, 64, requires_grad=True)
+        ev = torch.randn(2, 64, requires_grad=True)
         point = torch.randn(2, 7, requires_grad=True)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
         loss = result.sum()
         loss.backward()
 
-        assert motor.grad is not None
+        assert ev.grad is not None
         assert point.grad is not None
 
     def test_pipeline_gradient_flow(self):
         """Gradients flow through full pipeline."""
-        pipeline = CGA5DTransformPipeline()
+        pipeline = CGAPipeline()
 
-        motor = torch.randn(2, 64, requires_grad=True)
+        ev = torch.randn(2, 64, requires_grad=True)
         x = torch.randn(2, 5, requires_grad=True)
 
-        y = pipeline(motor, x)
+        y = pipeline(ev, x)
         loss = y.sum()
         loss.backward()
 
-        assert motor.grad is not None
+        assert ev.grad is not None
         assert x.grad is not None
 
 
 class TestEdgeCases:
     """Test edge cases and boundary conditions."""
 
-    def test_zero_motor(self):
-        """Zero motor produces zero output."""
-        layer = CGA5DCareLayer()
+    def test_zero_even_versor(self):
+        """Zero EvenVersor produces zero output."""
+        layer = CliffordTransformLayer()
 
-        motor = torch.zeros(1, 64)
+        ev = torch.zeros(1, 64)
         point = torch.randn(1, 7)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert torch.allclose(result, torch.zeros_like(result), atol=1e-6)
 
     def test_zero_point(self):
         """Zero point produces zero output."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(1, 64)
+        ev = torch.randn(1, 64)
         point = torch.zeros(1, 7)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert torch.allclose(result, torch.zeros_like(result), atol=1e-6)
 
     def test_large_batch(self):
         """Large batch sizes work correctly."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(256, 64)
+        ev = torch.randn(256, 64)
         point = torch.randn(256, 7)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.shape == (256, 7)
         assert not torch.isnan(result).any()
 
     def test_single_batch(self):
         """Single batch size works correctly."""
-        layer = CGA5DCareLayer()
+        layer = CliffordTransformLayer()
 
-        motor = torch.randn(1, 64)
+        ev = torch.randn(1, 64)
         point = torch.randn(1, 7)
 
-        result = layer(motor, point)
+        result = layer(ev, point)
 
         assert result.shape == (1, 7)
 

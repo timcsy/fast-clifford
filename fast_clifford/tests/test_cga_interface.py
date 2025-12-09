@@ -121,7 +121,7 @@ class TestCGAAlgebraBaseInterface:
         assert hasattr(cga, 'euclidean_dim')
         assert hasattr(cga, 'blade_count')
         assert hasattr(cga, 'point_count')
-        assert hasattr(cga, 'motor_count')
+        assert hasattr(cga, 'even_versor_count')
         assert hasattr(cga, 'signature')
         assert hasattr(cga, 'clifford_notation')
 
@@ -131,12 +131,12 @@ class TestCGAAlgebraBaseInterface:
         cga = CGA(n)
 
         # Core operations
-        assert callable(cga.upgc_encode)
-        assert callable(cga.upgc_decode)
+        assert callable(cga.cga_encode)
+        assert callable(cga.cga_decode)
         assert callable(cga.geometric_product_full)
         assert callable(cga.sandwich_product_sparse)
         assert callable(cga.reverse_full)
-        assert callable(cga.reverse_motor)
+        assert callable(cga.reverse_even_versor)
 
     @pytest.mark.parametrize("n", [0, 1, 2, 3])
     def test_layer_factory_methods_exist(self, n):
@@ -144,27 +144,27 @@ class TestCGAAlgebraBaseInterface:
         cga = CGA(n)
 
         # Layer factories
-        assert callable(cga.get_care_layer)
+        assert callable(cga.get_transform_layer)
         assert callable(cga.get_encoder)
         assert callable(cga.get_decoder)
         assert callable(cga.get_transform_pipeline)
 
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_upgc_encode_shape(self, n):
-        """Test that upgc_encode produces correct shape."""
+    def test_cga_encode_shape(self, n):
+        """Test that cga_encode produces correct shape."""
         cga = CGA(n)
         batch_size = 8
         x = torch.randn(batch_size, n)
-        point = cga.upgc_encode(x)
+        point = cga.cga_encode(x)
         assert point.shape == (batch_size, n + 2)
 
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_upgc_decode_shape(self, n):
-        """Test that upgc_decode produces correct shape."""
+    def test_cga_decode_shape(self, n):
+        """Test that cga_decode produces correct shape."""
         cga = CGA(n)
         batch_size = 8
         point = torch.randn(batch_size, n + 2)
-        x = cga.upgc_decode(point)
+        x = cga.cga_decode(point)
         assert x.shape == (batch_size, n)
 
     @pytest.mark.parametrize("n", [1, 2, 3])
@@ -172,16 +172,16 @@ class TestCGAAlgebraBaseInterface:
         """Test that sandwich_product_sparse produces correct shape."""
         cga = CGA(n)
         batch_size = 8
-        motor = torch.randn(batch_size, cga.motor_count)
+        ev = torch.randn(batch_size, cga.even_versor_count)
         point = torch.randn(batch_size, cga.point_count)
-        result = cga.sandwich_product_sparse(motor, point)
+        result = cga.sandwich_product_sparse(ev, point)
         assert result.shape == (batch_size, cga.point_count)
 
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_get_care_layer_returns_module(self, n):
-        """Test that get_care_layer returns nn.Module."""
+    def test_get_transform_layer_returns_module(self, n):
+        """Test that get_transform_layer returns nn.Module."""
         cga = CGA(n)
-        layer = cga.get_care_layer()
+        layer = cga.get_transform_layer()
         assert isinstance(layer, torch.nn.Module)
 
     @pytest.mark.parametrize("n", [1, 2, 3])
@@ -210,8 +210,8 @@ class TestCGAConsistency:
     """Test consistency across different access methods."""
 
     @pytest.mark.parametrize("n", [1, 2, 3])
-    def test_cga_vs_direct_module_upgc_encode(self, n):
-        """Test that CGA(n).upgc_encode matches direct module access."""
+    def test_cga_vs_direct_module_cga_encode(self, n):
+        """Test that CGA(n).cga_encode matches direct module access."""
         cga = CGA(n)
 
         # Direct module access
@@ -223,8 +223,8 @@ class TestCGAConsistency:
             from fast_clifford.algebras import cga3d as direct
 
         x = torch.randn(8, n)
-        unified_result = cga.upgc_encode(x)
-        direct_result = direct.upgc_encode(x)
+        unified_result = cga.cga_encode(x)
+        direct_result = direct.cga_encode(x)
 
         assert torch.allclose(unified_result, direct_result, atol=1e-6)
 
@@ -241,10 +241,10 @@ class TestCGAConsistency:
         elif n == 3:
             from fast_clifford.algebras import cga3d as direct
 
-        motor = torch.randn(8, cga.motor_count)
+        ev = torch.randn(8, cga.even_versor_count)
         point = torch.randn(8, cga.point_count)
 
-        unified_result = cga.sandwich_product_sparse(motor, point)
-        direct_result = direct.sandwich_product_sparse(motor, point)
+        unified_result = cga.sandwich_product_sparse(ev, point)
+        direct_result = direct.sandwich_product_sparse(ev, point)
 
         assert torch.allclose(unified_result, direct_result, atol=1e-6)

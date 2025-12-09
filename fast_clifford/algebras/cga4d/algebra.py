@@ -12,7 +12,7 @@ CGA4D extends 4D Euclidean space with conformal model:
 - Signature: (+,+,+,+,+,-) = 5 positive, 1 negative
 - 64 blades total (2^6)
 - UPGC Point: 6 components (Grade 1)
-- Motor: 31 components (Grade 0 + 2 + 4)
+- EvenVersor: 31 components (Grade 0 + 2 + 4)
 """
 
 from typing import Dict, List, Tuple
@@ -254,33 +254,33 @@ def get_blade_info() -> List[Dict]:
 
 
 # Sparsity masks for common multivector types
-UPGC_POINT_MASK = GRADE_1_INDICES  # Grade 1 only (6 components)
+POINT_MASK = GRADE_1_INDICES  # Grade 1 only (6 components)
 
-# Motor mask: Grade 0, 2, 4 (1 + 15 + 15 = 31 components)
-MOTOR_MASK = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES
+# EvenVersor mask: Grade 0, 2, 4 (1 + 15 + 15 = 31 components)
+EVEN_VERSOR_MASK = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES
 
-# Motor sparse indices (ordered for the 31-component representation)
-MOTOR_SPARSE_INDICES = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES
+# EvenVersor sparse indices (ordered for the 31-component representation)
+EVEN_VERSOR_SPARSE_INDICES = GRADE_0_INDICES + GRADE_2_INDICES + GRADE_4_INDICES
 
 
-def get_motor_sparse_index_map() -> Dict[int, int]:
+def get_even_versor_sparse_index_map() -> Dict[int, int]:
     """
-    Get mapping from full 64-index to sparse 31-index for motors.
+    Get mapping from full 64-index to sparse 31-index for EvenVersors.
 
     Returns:
         Dict mapping full_index -> sparse_index
     """
-    return {full: sparse for sparse, full in enumerate(MOTOR_SPARSE_INDICES)}
+    return {full: sparse for sparse, full in enumerate(EVEN_VERSOR_SPARSE_INDICES)}
 
 
-def get_motor_full_index_map() -> Dict[int, int]:
+def get_even_versor_full_index_map() -> Dict[int, int]:
     """
-    Get mapping from sparse 31-index to full 64-index for motors.
+    Get mapping from sparse 31-index to full 64-index for EvenVersors.
 
     Returns:
         Dict mapping sparse_index -> full_index
     """
-    return {sparse: full for sparse, full in enumerate(MOTOR_SPARSE_INDICES)}
+    return {sparse: full for sparse, full in enumerate(EVEN_VERSOR_SPARSE_INDICES)}
 
 
 # =============================================================================
@@ -333,11 +333,11 @@ def get_reverse_signs() -> Tuple[int, ...]:
 REVERSE_SIGNS = get_reverse_signs()
 
 
-def get_motor_reverse_signs() -> Tuple[int, ...]:
+def get_even_versor_reverse_signs() -> Tuple[int, ...]:
     """
-    Get the reverse signs for the 31 motor components.
+    Get the reverse signs for the 31 EvenVersor components.
 
-    Motor components are in order:
+    EvenVersor components are in order:
     - Grade 0: 1 component (sign = +1)
     - Grade 2: 15 components (sign = -1)
     - Grade 4: 15 components (sign = +1)
@@ -346,14 +346,14 @@ def get_motor_reverse_signs() -> Tuple[int, ...]:
         Tuple of 31 signs
     """
     signs = []
-    for full_idx in MOTOR_SPARSE_INDICES:
+    for full_idx in EVEN_VERSOR_SPARSE_INDICES:
         grade = get_blade_grade(full_idx)
         signs.append(REVERSE_SIGNS_BY_GRADE[grade])
     return tuple(signs)
 
 
-# Precomputed motor reverse signs
-MOTOR_REVERSE_SIGNS = get_motor_reverse_signs()
+# Precomputed EvenVersor reverse signs
+EVEN_VERSOR_REVERSE_SIGNS = get_even_versor_reverse_signs()
 
 
 # =============================================================================

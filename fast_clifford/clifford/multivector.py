@@ -420,6 +420,18 @@ class Rotor:
         self.algebra = algebra
 
     # =========================================================================
+    # Algebra Comparison
+    # =========================================================================
+
+    def _same_algebra(self, other: "Rotor") -> bool:
+        """Check if two rotors are from the same algebra (by signature)."""
+        return (
+            self.algebra.p == other.algebra.p and
+            self.algebra.q == other.algebra.q and
+            self.algebra.r == other.algebra.r
+        )
+
+    # =========================================================================
     # Rotor Composition
     # =========================================================================
 

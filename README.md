@@ -175,7 +175,7 @@ cga = CGA(3)
 
 # Encode 3D points to conformal representation
 points = torch.tensor([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]])
-conformal_points = cga.encode(points)  # Shape: (2, 5)
+conformal_points = cga.encode(points)  # Shape: (2, 32)
 
 # Create a rotor
 rotor = torch.randn(2, cga.count_rotor)  # Shape: (2, 16)
@@ -246,7 +246,7 @@ cga = CGA(3)
 layer = cga.get_transform_layer()
 
 rotor = torch.randn(1, cga.count_rotor)
-point = torch.randn(1, cga.count_point)
+point = torch.randn(1, cga.count_blade)  # Full multivector
 
 torch.onnx.export(
     layer,

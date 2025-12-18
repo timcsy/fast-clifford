@@ -21,9 +21,9 @@
 | Phase 6: US4 Rotor | ✅ Complete | T038-T048 (all rotor ops including exp/log/slerp) |
 | Phase 7: US5 Bott | ✅ Basic Complete | T049-T056 (simplified implementation) |
 | Phase 8: US6 PGA | ✅ Complete | T057-T063 |
-| Phase 9: Polish | ✅ Core Complete | T064-T070 (ONNX pending) |
+| Phase 9: Polish | ✅ Complete | T064-T070 |
 
-**Test Results**: 197 tests passing
+**Test Results**: 212 tests passing (including 15 ONNX tests)
 **Benchmark**: VGA 16.1x faster, CGA 3.1x faster vs clifford library
 
 ---
@@ -229,11 +229,11 @@
 
 - [x] T064 [P] 更新 `fast_clifford/__init__.py` - 匯出 Cl, VGA, CGA, PGA
 - [x] T065 [P] 建立 `fast_clifford/algebras/generated/__init__.py` - 動態載入器
-- [ ] T066 執行 quickstart.md 範例驗證（待手動驗證）
-- [ ] T067 [P] 建立 `tests/test_onnx_export.py` - ONNX 匯出驗證（待實作）
+- [x] T066 執行 quickstart.md 範例驗證（所有範例通過驗證）
+- [x] T067 [P] 建立 `tests/test_onnx_export.py` - ONNX 匯出驗證（15 tests）
 - [x] T068 [P] 建立 `tests/benchmark/` - 效能 benchmark（對比 clifford 庫，VGA 16x, CGA 3x 加速）
 - [x] T069 程式碼清理與格式化
-- [x] T070 [P] 更新現有測試以使用新 API（142 tests passing）
+- [x] T070 [P] 更新現有測試以使用新 API（212 tests passing）
 
 ---
 

@@ -124,8 +124,8 @@ cga = CGA(3)  # 3D 共形幾何代數
 euclidean = torch.tensor([[1.0, 2.0, 3.0],
                           [4.0, 5.0, 6.0]])
 
-# 編碼為 CGA 點
-cga_points = cga.encode(euclidean)  # shape: (2, 5)
+# 編碼為 CGA 點（完整 multivector 表示）
+cga_points = cga.encode(euclidean)  # shape: (2, 32)
 
 # 應用變換
 rotor = cga.exp_bivector(torch.randn(10))
@@ -214,7 +214,7 @@ layer = cga.get_transform_layer()
 
 # 範例輸入
 rotor = torch.randn(1, 16)
-point = torch.randn(1, 5)
+point = torch.randn(1, 32)  # 完整 multivector 表示
 
 # 導出
 torch.onnx.export(

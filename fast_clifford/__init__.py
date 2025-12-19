@@ -1,61 +1,58 @@
 """
-fast-clifford: High-performance CGA code generator for PyTorch
+fast-clifford: High-performance Clifford algebra code generator for PyTorch
 
 This package provides:
 - Code generation for Clifford algebra operations
-- Optimized sparse implementations for CGA (Conformal Geometric Algebra)
+- Optimized implementations for VGA, CGA, and general Cl(p,q) algebras
 - ONNX-exportable PyTorch modules for TensorRT deployment
 
-Supported CGA algebras:
-- cga0d: Cl(1,1) - 0D Conformal Geometric Algebra (4 blades)
-- cga1d: Cl(2,1) - 1D Conformal Geometric Algebra (8 blades)
-- cga2d: Cl(3,1) - 2D Conformal Geometric Algebra (16 blades)
-- cga3d: Cl(4,1) - 3D Conformal Geometric Algebra (32 blades)
-- cga4d: Cl(5,1) - 4D Conformal Geometric Algebra (64 blades)
-- cga5d: Cl(6,1) - 5D Conformal Geometric Algebra (128 blades)
-- CGA(6+): Runtime computed for higher dimensions
+Factory Functions:
+- Cl(p, q, r=0): Create arbitrary Clifford algebra Cl(p, q, r)
+- VGA(n): Create VGA(n) = Cl(n, 0) - Vanilla Geometric Algebra
+- CGA(n): Create CGA(n) = Cl(n+1, 1) - Conformal Geometric Algebra (coming soon)
+- PGA(n): Create PGA(n) = Cl(n, 0, 1) - Projective Geometric Algebra (coming soon)
 
-Unified interface:
-- CGA(n): Create CGA algebra by Euclidean dimension
-- Cl(p, q, r): Create Clifford algebra by signature
+Example:
+    >>> from fast_clifford import Cl, VGA
+    >>> vga3d = VGA(3)  # Cl(3, 0)
+    >>> algebra = Cl(2, 2)  # General Cl(2, 2)
 
-Extended Operations (Feature 005):
-- compose(): EvenVersor or Similitude composition
-- sandwich_product(): Transform points/multivectors
-- inner_product(): Scalar product <a*b>_0
-- outer_product(): Wedge product a ^ b
-- left_contraction(): a left-contract b
-- right_contraction(): a right-contract b
-- grade_select(): Extract grade-k component
-- dual(): Poincare duality
-- normalize(): Unit normalization
-- exp_bivector(): Bivector exponential map
+Note:
+    This is version 0.2.0 with the unified Clifford algebra interface.
+    Breaking change: Old cga0d-cga5d modules have been removed.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
-# Expose all CGA algebras
-from .algebras import cga0d, cga1d, cga2d, cga3d, cga4d, cga5d
-
-# Expose unified interface
-from .cga import CGA, Cl, CGAAlgebraBase, Multivector, EvenVersor, Similitude
+# Import from unified interface
+from .clifford import (
+    Cl,
+    VGA,
+    CGA,
+    PGA,
+    CliffordAlgebraBase,
+    HardcodedClWrapper,
+    Multivector,
+    Rotor,
+    VGAWrapper,
+    CGAWrapper,
+    PGAEmbedding,
+)
 
 __all__ = [
-    # Version
     "__version__",
-    # Unified interface
-    "CGA",
+    # Factory functions
     "Cl",
-    "CGAAlgebraBase",
-    # Multivector classes
+    "VGA",
+    "CGA",
+    "PGA",
+    # Base classes
+    "CliffordAlgebraBase",
+    "HardcodedClWrapper",
+    # Wrapper classes
     "Multivector",
-    "EvenVersor",
-    "Similitude",
-    # Direct module access
-    "cga0d",
-    "cga1d",
-    "cga2d",
-    "cga3d",
-    "cga4d",
-    "cga5d",
+    "Rotor",
+    "VGAWrapper",
+    "CGAWrapper",
+    "PGAEmbedding",
 ]

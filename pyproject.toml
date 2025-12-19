@@ -26,10 +26,17 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
-testpaths = ["fast_clifford/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 addopts = "-v"
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:torch.onnx.*:",
+    "ignore:.*dynamic_axes.*:UserWarning",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["fast_clifford"]

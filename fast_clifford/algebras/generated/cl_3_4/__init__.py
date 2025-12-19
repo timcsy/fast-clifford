@@ -1,9 +1,2 @@
-"""
-Clifford Algebra Cl(3, 4) - Auto-generated
-
-Blade count: 128
-Rotor count: 64
-Algebra type: general
-"""
-
+"""Clifford Algebra Cl(3, 4) - Auto-generated module"""
 from .functional import *

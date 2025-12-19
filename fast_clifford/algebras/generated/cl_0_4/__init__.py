@@ -1,9 +1,2 @@
-"""
-Clifford Algebra Cl(0, 4) - Auto-generated
-
-Blade count: 16
-Rotor count: 8
-Algebra type: anti-euclidean
-"""
-
+"""Clifford Algebra Cl(0, 4) - Auto-generated module"""
 from .functional import *

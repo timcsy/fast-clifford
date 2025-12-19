@@ -29,7 +29,6 @@ tests/
 - 006-unified-clifford-codegen: Added Python 3.11+, PyTorch 2.0+ + PyTorch, NumPy (preprocessing only), clifford (test validation)
 - 005-cga-extended-ops: Added Python 3.11+, PyTorch 2.0+ + PyTorch, clifford (測試對照), NumPy
 
-- 001-cga-algebra-rules: Added
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

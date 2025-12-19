@@ -27,7 +27,8 @@ from .specializations.pga import PGAEmbedding
 
 
 # Threshold for using hardcoded vs Bott periodicity
-HARDCODED_THRESHOLD = 512  # p+q <= 9
+# After 007-bott-optimization: All 36 algebras with p+q < 8 are hardcoded (128 blades max)
+HARDCODED_THRESHOLD = 128  # p+q < 8
 
 
 def Cl(p: int, q: int = 0, r: int = 0) -> CliffordAlgebraBase:
@@ -43,8 +44,8 @@ def Cl(p: int, q: int = 0, r: int = 0) -> CliffordAlgebraBase:
         CliffordAlgebraBase instance
 
     Routing:
-        - blade_count <= 512 (p+q <= 9): Uses pre-generated hardcoded algebra
-        - blade_count > 512: Uses Bott periodicity decomposition
+        - blade_count <= 128 (p+q < 8): Uses pre-generated hardcoded algebra
+        - blade_count > 128 (p+q >= 8): Uses Bott periodicity decomposition
 
     Raises:
         ValueError: If r != 0 (not yet supported)
@@ -53,6 +54,7 @@ def Cl(p: int, q: int = 0, r: int = 0) -> CliffordAlgebraBase:
     Example:
         >>> algebra = Cl(3, 0)   # VGA(3) - hardcoded
         >>> algebra = Cl(4, 1)   # CGA(3) - hardcoded
+        >>> algebra = Cl(1, 3)   # hardcoded
         >>> algebra = Cl(10, 0)  # VGA(10) - Bott periodicity
     """
     if r != 0:
@@ -63,7 +65,7 @@ def Cl(p: int, q: int = 0, r: int = 0) -> CliffordAlgebraBase:
 
     blade_count = 2 ** (p + q)
 
-    # For blade_count <= 512, use hardcoded
+    # For blade_count <= 128 (p+q < 8), use hardcoded algebra
     if blade_count <= HARDCODED_THRESHOLD:
         algebra = get_hardcoded_algebra(p, q)
         if algebra is not None:
@@ -74,7 +76,7 @@ def Cl(p: int, q: int = 0, r: int = 0) -> CliffordAlgebraBase:
                 "Generate it first using ClCodeGenerator."
             )
     else:
-        # For high dimensions, use Bott periodicity
+        # For high dimensions (p+q >= 8), use Bott periodicity
         return BottPeriodicityAlgebra(p, q)
 
 

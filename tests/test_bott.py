@@ -258,6 +258,105 @@ class TestBottMixedSignature:
         assert alg.outer(a, b).shape == (alg.count_blade,)
 
 
+class TestBottDecomposition:
+    """Test Bott periodicity decomposition (T031-T034)."""
+
+    def test_cl10_0_decomposition(self):
+        """T031: Test Cl(10,0) decomposes to Cl(2,0) ⊗ M₁₆(ℝ)."""
+        alg = Cl(10, 0)
+
+        assert isinstance(alg, BottPeriodicityAlgebra)
+        assert alg.periods == 1
+        assert alg.base_p == 2
+        assert alg.base_q == 0
+        assert alg.matrix_size == 16
+        assert alg.base_algebra.p == 2
+        assert alg.base_algebra.q == 0
+
+    def test_cl17_0_decomposition(self):
+        """T032: Test Cl(17,0) decomposes to Cl(1,0) ⊗ M₂₅₆(ℝ)."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            alg = Cl(17, 0)
+
+        assert isinstance(alg, BottPeriodicityAlgebra)
+        assert alg.periods == 2
+        assert alg.base_p == 1
+        assert alg.base_q == 0
+        assert alg.matrix_size == 256  # 16^2
+        assert alg.base_algebra.p == 1
+        assert alg.base_algebra.q == 0
+
+    def test_cl24_0_decomposition(self):
+        """T033: Test Cl(24,0) decomposes to Cl(0,0) ⊗ M₄₀₉₆(ℝ)."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            alg = Cl(24, 0)
+
+        assert isinstance(alg, BottPeriodicityAlgebra)
+        assert alg.periods == 3
+        assert alg.base_p == 0
+        assert alg.base_q == 0
+        assert alg.matrix_size == 4096  # 16^3
+        assert alg.base_algebra.p == 0
+        assert alg.base_algebra.q == 0
+
+    def test_cl10_2_mixed_signature(self):
+        """T034: Test Cl(10,2) mixed signature decomposition."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            alg = Cl(10, 2)
+
+        assert isinstance(alg, BottPeriodicityAlgebra)
+        assert alg.p == 10
+        assert alg.q == 2
+        assert alg.periods == 1
+        # 10+2=12, reduce by 8: base should be 4+0 or 2+2 depending on algorithm
+        # Our algorithm: reduce from larger (p), so 10-8=2, q stays 2: Cl(2,2)
+        assert alg.base_p == 2
+        assert alg.base_q == 2
+        assert alg.matrix_size == 16
+        assert alg.base_algebra.p == 2
+        assert alg.base_algebra.q == 2
+
+    @pytest.mark.slow
+    def test_cl5_4_edge_case(self):
+        """Test Cl(5,4) edge case where both p<8 and q<8 but p+q>=8.
+
+        Note: Slow because base algebra Cl(3,4) has 128 blades, requiring
+        ~6 minutes to compute 128³ multiplication table entries.
+        """
+        alg = Cl(5, 4)
+
+        assert isinstance(alg, BottPeriodicityAlgebra)
+        assert alg.periods == 1
+        # 5+4=9 >= 8, both <8, reduce from larger (p): 5-2=3, q stays 4-0=4
+        # Actually our algorithm: reduction_needed = 9-7=2, take from p: min(5,2)=2
+        # So base_p=3, base_q=4
+        assert alg.base_p == 3
+        assert alg.base_q == 4
+        assert alg.base_p + alg.base_q == 7
+        assert alg.matrix_size == 16
+
+    @pytest.mark.slow
+    def test_cl4_5_edge_case(self):
+        """Test Cl(4,5) edge case - symmetric to Cl(5,4).
+
+        Note: Slow because base algebra Cl(4,3) has 128 blades, requiring
+        ~6 minutes to compute 128³ multiplication table entries.
+        """
+        alg = Cl(4, 5)
+
+        assert isinstance(alg, BottPeriodicityAlgebra)
+        assert alg.periods == 1
+        # 4+5=9 >= 8, both <8, reduce from larger (q): reduction_needed=2
+        # take from q: min(5,2)=2, so base_q=3, base_p=4
+        assert alg.base_p == 4
+        assert alg.base_q == 3
+        assert alg.base_p + alg.base_q == 7
+        assert alg.matrix_size == 16
+
+
 class TestBottHighDimensions:
     """Test very high dimensional algebras."""
 
@@ -283,3 +382,65 @@ class TestBottHighDimensions:
         e1_sq = alg.geometric_product(e1, e1)
 
         assert torch.allclose(e1_sq[0], torch.tensor(1.0), atol=1e-5)
+
+
+class TestBottPrecision:
+    """T050: Test float32/float16 precision consistency (Constitution Principle V)."""
+
+    def test_float32_precision(self):
+        """Test Bott operations with float32 precision."""
+        alg = Cl(10, 0)
+
+        # Create float32 multivectors
+        a = torch.randn(alg.count_blade, dtype=torch.float32)
+        b = torch.randn(alg.count_blade, dtype=torch.float32)
+
+        # Operations should preserve dtype
+        result = alg.geometric_product(a, b)
+        assert result.dtype == torch.float32
+
+        # Verify numerical properties
+        e1 = alg.basis_vector(1).to(torch.float32)
+        e1_sq = alg.geometric_product(e1, e1)
+        assert torch.allclose(e1_sq[0], torch.tensor(1.0, dtype=torch.float32), atol=1e-5)
+
+    def test_float64_precision(self):
+        """Test Bott operations with float64 precision."""
+        alg = Cl(10, 0)
+
+        # Create float64 multivectors
+        a = torch.randn(alg.count_blade, dtype=torch.float64)
+        b = torch.randn(alg.count_blade, dtype=torch.float64)
+
+        # Operations should preserve dtype
+        result = alg.geometric_product(a, b)
+        assert result.dtype == torch.float64
+
+        # Verify with higher precision tolerance
+        e1 = alg.basis_vector(1).to(torch.float64)
+        e1_sq = alg.geometric_product(e1, e1)
+        assert torch.allclose(e1_sq[0], torch.tensor(1.0, dtype=torch.float64), atol=1e-10)
+
+    def test_dtype_consistency(self):
+        """Test that dtype must be consistent for operations.
+
+        Note: einsum requires all operands to have the same dtype.
+        Users should explicitly convert to the desired precision.
+        """
+        alg = Cl(10, 0)
+
+        # Same dtype operations work correctly
+        a32 = torch.randn(alg.count_blade, dtype=torch.float32)
+        b32 = torch.randn(alg.count_blade, dtype=torch.float32)
+        result32 = alg.geometric_product(a32, b32)
+        assert result32.dtype == torch.float32
+
+        a64 = torch.randn(alg.count_blade, dtype=torch.float64)
+        b64 = torch.randn(alg.count_blade, dtype=torch.float64)
+        result64 = alg.geometric_product(a64, b64)
+        assert result64.dtype == torch.float64
+
+        # Explicit conversion works
+        a_converted = a32.to(torch.float64)
+        result_mixed = alg.geometric_product(a_converted, b64)
+        assert result_mixed.dtype == torch.float64

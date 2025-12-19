@@ -11,10 +11,10 @@ Usage:
 """
 
 from .generator import ClCodeGenerator, generate_algebra_module
-from .clifford_factory import ClFactory
+from .clifford_factory import create_clifford_algebra
 
 __all__ = [
     "ClCodeGenerator",
     "generate_algebra_module",
-    "ClFactory",
+    "create_clifford_algebra",
 ]

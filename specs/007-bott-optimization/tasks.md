@@ -136,8 +136,8 @@
 - [x] T049 [P] 驗證 ONNX 匯出無 Loop 節點：15 passed
 - [x] T050 [P] 測試 Bott 運算的 float32/float16 精度一致性（憲法原則 V）在 tests/test_bott.py
 - [x] T051 [P] 刪除備份檔案 fast_clifford/clifford/bott_backup.py
-- [ ] T052 更新 README.md 反映新的儲存空間和效能
-- [ ] T053 驗證 quickstart.md 範例仍可執行
+- [x] T052 更新 README.md 反映新的儲存空間和效能（36 algebras, 55x faster）
+- [x] T053 驗證 quickstart.md 範例仍可執行
 
 ---
 

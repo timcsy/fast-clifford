@@ -379,14 +379,51 @@ pga = PGA(n)   # Cl(n, 0, 1) - Projective
 
 ## Performance
 
-### Benchmark vs clifford library (batch=1024)
+Run the benchmark yourself:
 
-| Algebra | Operation | fast-clifford | clifford | Speedup |
-|---------|-----------|---------------|----------|---------|
-| VGA(3) | geometric | 0.114ms | 1.841ms | **16.1x** |
-| CGA(3) | geometric | 2.050ms | 6.255ms | **3.1x** |
-| VGA(3) | rotor compose | 0.037ms | - | 26.8M ops/s |
-| CGA(3) | sandwich | 2.490ms | - | 0.4M ops/s |
+```bash
+uv run python benchmark.py
+```
+
+### Comparison with clifford Library (batch=500)
+
+| Operation | fast-clifford | clifford | Speedup |
+|-----------|---------------|----------|---------|
+| VGA(3) geometric | 0.087ms | 0.923ms | **10.6x** |
+| CGA(3) geometric | 1.27ms | 2.94ms | **2.3x** |
+| VGA(3) outer | 0.044ms | 1.22ms | **27.8x** |
+| VGA(3) reverse | 0.015ms | 0.373ms | **24.6x** |
+
+### Single Element Operations
+
+| Operation | Time | Ops/sec |
+|-----------|------|---------|
+| VGA(3) geometric_product | 0.072ms | 13.8K |
+| VGA(3) outer | 0.037ms | 27.2K |
+| VGA(3) inner | 0.018ms | 55.3K |
+| VGA(3) reverse | 0.009ms | 115K |
+| VGA(3) sandwich_rotor | 0.133ms | 7.5K |
+| CGA(3) geometric_product | 1.08ms | 924 |
+| CGA(3) sandwich_rotor | 1.56ms | 642 |
+
+### Batch Throughput (ops/sec)
+
+| Operation | n=1 | n=100 | n=1000 |
+|-----------|-----|-------|--------|
+| VGA(3) geometric | 13K | 1.2M | **9.3M** |
+| CGA(3) geometric | 920 | 86K | **513K** |
+| VGA(3) sandwich | 8.6K | 746K | **6.0M** |
+| CGA(3) sandwich | 635 | 58K | **441K** |
+| VGA(3) encode | 426K | 42M | **318M** |
+| CGA(3) encode | 72K | 6.6M | **48M** |
+
+### Bott Periodicity (High-Dimensional Algebras)
+
+| Algebra | Blades | Base | Init Time | Geometric Product |
+|---------|--------|------|-----------|-------------------|
+| Cl(8,0) | 256 | Cl(0,0) | 0.048ms | 0.022ms |
+| Cl(10,0) | 1024 | Cl(2,0) | 0.21ms | 0.040ms |
+| Cl(12,0) | 4096 | Cl(4,0) | 1.5ms | 0.079ms |
 
 ### Optimization Techniques
 
@@ -394,7 +431,7 @@ pga = PGA(n)   # Cl(n, 0, 1) - Projective
 - **Sparse Representation**: Only compute non-zero blade products
 - **JIT Compilation**: `@torch.jit.script` for p+q ≤ 8
 - **Loop-free**: All operations unrolled for ONNX compatibility
-- **Bott Periodicity**: Efficient high-dimensional computation
+- **Tensor-accelerated Bott**: einsum-based matrix operations (55x faster init)
 
 ## Testing
 

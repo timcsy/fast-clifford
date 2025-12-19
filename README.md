@@ -5,10 +5,10 @@ High-performance Clifford Algebra library for PyTorch, optimized for deep learni
 ## Features
 
 - **Unified Interface**: `Cl(p,q,r)`, `VGA(n)`, `CGA(n)`, `PGA(n)` factory functions
-- **Complete Coverage**: 55 pre-generated algebras for p+q ≤ 9, Bott periodicity for higher dimensions
+- **Complete Coverage**: 36 pre-generated algebras for p+q < 8, tensor-accelerated Bott periodicity for higher dimensions
 - **Hardware Acceleration**: CPU, Apple MPS, NVIDIA CUDA
 - **ONNX Compatible**: Loop-free operations for TensorRT deployment
-- **High Performance**: Up to 16x faster than clifford library
+- **High Performance**: Up to 16x faster than clifford library, 55x faster Bott initialization
 - **Operator Overloading**: Intuitive Python operators (`*`, `^`, `|`, `<<`, `>>`, `@`, `~`, `&`)
 - **Complete Algebra**: Geometric product, wedge, contractions, dual, exponential map, and more
 
@@ -19,15 +19,17 @@ High-performance Clifford Algebra library for PyTorch, optimized for deep learni
 | VGA | `VGA(n)` | Cl(n, 0) | VGA(3) = Cl(3,0) | Hardcoded |
 | CGA | `CGA(n)` | Cl(n+1, 1) | CGA(3) = Cl(4,1) | Hardcoded |
 | PGA | `PGA(n)` | Cl(n, 0, 1) | PGA(3) = Cl(3,0,1) | Runtime (CGA embedding) |
-| General | `Cl(p,q)` | Cl(p, q) | Cl(2,2) | Hardcoded (p+q ≤ 9) |
-| High-dim | `Cl(p,q)` | Cl(p, q) | Cl(10,0) | Bott periodicity |
+| General | `Cl(p,q)` | Cl(p, q) | Cl(2,2) | Hardcoded (p+q < 8) |
+| High-dim | `Cl(p,q)` | Cl(p, q) | Cl(10,0) | Bott periodicity (tensor-accelerated) |
 
-### Pre-generated Algebras (55 total)
+### Pre-generated Algebras (36 total)
 
-All algebras with p+q ≤ 9 (up to 512 blades) are pre-generated with hardcoded operations.
+All algebras with p+q < 8 (up to 128 blades) are pre-generated with hardcoded loop-free operations.
+Higher dimensions use tensor-accelerated Bott periodicity with einsum (55x faster than Python loops).
 
 | Blades | Algebras |
 |--------|----------|
+| 1 | Cl(0,0) |
 | 2 | Cl(1,0), Cl(0,1) |
 | 4 | Cl(2,0), Cl(1,1), Cl(0,2) |
 | 8 | Cl(3,0), Cl(2,1), Cl(1,2), Cl(0,3) |
@@ -35,8 +37,6 @@ All algebras with p+q ≤ 9 (up to 512 blades) are pre-generated with hardcoded 
 | 32 | Cl(5,0), Cl(4,1), Cl(3,2), Cl(2,3), Cl(1,4), Cl(0,5) |
 | 64 | Cl(6,0), Cl(5,1), Cl(4,2), Cl(3,3), Cl(2,4), Cl(1,5), Cl(0,6) |
 | 128 | Cl(7,0), Cl(6,1), Cl(5,2), Cl(4,3), Cl(3,4), Cl(2,5), Cl(1,6), Cl(0,7) |
-| 256 | Cl(8,0), Cl(7,1), Cl(6,2), Cl(5,3), Cl(4,4), Cl(3,5), Cl(2,6), Cl(1,7), Cl(0,8) |
-| 512 | Cl(9,0), Cl(8,1), Cl(7,2), Cl(6,3), Cl(5,4), Cl(4,5), Cl(3,6), Cl(2,7), Cl(1,8), Cl(0,9) |
 
 ## Installation
 
@@ -268,15 +268,21 @@ torch.onnx.export(
 ```python
 from fast_clifford import Cl
 
-# High-dimensional algebra using Bott periodicity
-# Cl(10,0) -> Cl(2,0) ⊗ M_16(R)
+# High-dimensional algebra using tensor-accelerated Bott periodicity
+# Cl(10,0) -> Cl(2,0) ⊗ M_16(R), Cl(17,0) -> Cl(1,0) ⊗ M_256(R)
 cl10 = Cl(10, 0)
 print(f"Cl(10,0): {cl10.count_blade} blades")  # 1024
+print(f"Base: Cl({cl10.base_p},{cl10.base_q}), periods={cl10.periods}")
 
-# All operations work the same
-e1 = cl10.basis_vector(0)
-e2 = cl10.basis_vector(1)
-product = cl10.geometric_product(e1, e2)
+# All operations work the same, but tensor-accelerated (55x faster init)
+e1 = cl10.basis_vector(1)
+e2 = cl10.basis_vector(2)
+product = cl10.geometric_product(e1, e2)  # Uses einsum, ~0.05ms
+
+# Batch operations supported
+import torch
+batch = torch.randn(100, cl10.count_blade)
+result = cl10.geometric_product(batch, batch)  # (100, 1024)
 ```
 
 ## API Reference

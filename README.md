@@ -275,8 +275,8 @@ print(f"Cl(10,0): {cl10.count_blade} blades")  # 1024
 print(f"Base: Cl({cl10.base_p},{cl10.base_q}), periods={cl10.periods}")
 
 # All operations work the same, but tensor-accelerated (55x faster init)
-e1 = cl10.basis_vector(1)
-e2 = cl10.basis_vector(2)
+e1 = cl10.basis_vector(0)  # e1 (0-indexed)
+e2 = cl10.basis_vector(1)  # e2
 product = cl10.geometric_product(e1, e2)  # Uses einsum, ~0.05ms
 
 # Batch operations supported
@@ -390,7 +390,7 @@ pga = PGA(n)   # Cl(n, 0, 1) - Projective
 
 ### Optimization Techniques
 
-- **Hardcoded Operations**: No Cayley table lookups for p+q ≤ 9
+- **Hardcoded Operations**: No Cayley table lookups for p+q < 8
 - **Sparse Representation**: Only compute non-zero blade products
 - **JIT Compilation**: `@torch.jit.script` for p+q ≤ 8
 - **Loop-free**: All operations unrolled for ONNX compatibility
@@ -399,7 +399,7 @@ pga = PGA(n)   # Cl(n, 0, 1) - Projective
 ## Testing
 
 ```bash
-# Run all tests (197 tests)
+# Run all tests (275 tests)
 uv run pytest tests/ -v
 
 # Run specific test files
@@ -422,7 +422,7 @@ fast_clifford/
 ├── __init__.py              # Cl, VGA, CGA, PGA, Multivector, Rotor
 ├── algebras/
 │   ├── __init__.py
-│   └── generated/           # 55 pre-generated algebras
+│   └── generated/           # 36 pre-generated algebras
 │       ├── cl_3_0/          # VGA(3) = Cl(3,0)
 │       ├── cl_4_1/          # CGA(3) = Cl(4,1)
 │       └── ...
@@ -441,7 +441,7 @@ fast_clifford/
 │   ├── __init__.py
 │   ├── clifford_factory.py  # Algebra factory utilities
 │   └── generator.py         # ClCodeGenerator
-└── tests/                   # Test suites (197 tests)
+└── tests/                   # Test suites (275 tests)
 ```
 
 ## Use Cases
